@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+vocab/
+out/
+generated/
+*.key
+.claude/settings.local.json
+pr-descriptions/
