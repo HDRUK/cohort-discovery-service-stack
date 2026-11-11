@@ -37,7 +37,7 @@ Each ticket is meant to be done in its own session.
 
    For a service repo, read that repo's `CLAUDE.md` and follow its conventions and commands, which override anything general here. Ask whether a Jira ticket exists for the work. Service repos check PR titles against `feat(DP-1234): …`.
 4. **Plan.** Restate the ticket's "Done when" as checks you'll run, then work through the steps.
-   - For Compose, Helm, Keycloak and CI work, use the `stack-platform-engineer` agent.
+   - For Helm, Tilt, Keycloak and CI work, use the `stack-platform-engineer` agent.
    - Use `laravel-senior-backend` for the API, `senior-python-developer` for NLP, and the web repo's own agents for web.
 5. In the tracker, set the ticket's status to `in progress`.
 

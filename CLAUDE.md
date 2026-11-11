@@ -4,14 +4,14 @@ Guidance for Claude Code in the `cohort-discovery-service-stack` repo (`HDRUK/co
 
 ## What this repo is
 
-The open-source deployment of the Cohort Discovery Service (Daphne). It runs the three services in **standalone mode**, configured entirely by `.env` and mounted files:
+The open-source deployment of the Cohort Discovery Service (Daphne). It runs the three services in **standalone mode** on Kubernetes, configured by Helm values and mounted files:
 - web (`project-daphne-web`, Next.js)
 - API (`project-daphne-api`, Laravel)
 - NLP (`project-daphne-nlp`, FastAPI)
 
 On top of the core it adds:
-- Docker Compose, then a Helm umbrella chart;
-- an optional Keycloak profile, with the identity provider authoritative for roles, custodians and workgroups;
+- a Helm umbrella chart, driven locally by Tilt (D12), with throwaway MySQL, Redis and Keycloak;
+- Keycloak as the identity provider, authoritative for roles, custodians and workgroups;
 - an OMOP vocabulary build, minimal by default or a full Athena import;
 - a bootstrap that seeds an admin and provisions custodians, collection hosts and collections through the API;
 - synthetic collections, served by somop-generated data and BUNNY daemons;
@@ -21,12 +21,12 @@ HDR UK's own dev, preprod and prod deployments are separate and must keep workin
 
 ## Status
 
-Planning is done. Nothing is built yet. The plan is in `docs/`:
+Planning is done and S0 (scaffold) is in progress. The plan is in `docs/`:
 
 | File | What |
 |---|---|
 | `docs/README.md` | Aims, ticket tracker (status, repo, dependencies), suggested order |
-| `docs/01-decisions.md` | Agreed decisions (D1–D5, D11) and open ones, each with a recommendation |
+| `docs/01-decisions.md` | Agreed decisions (D1–D5, D10–D12) and open ones, each with a recommendation |
 | `docs/02-verified-facts.md` | The state of every repo involved, with file paths. Read this before exploring |
 | `docs/tickets/` | One self-contained plan per ticket |
 
@@ -50,19 +50,18 @@ The planned layout, created by S0:
 
 ```
 services/{web,api,nlp}/   git submodules pinned to release tags (D5)
+charts/cohort-discovery/  Helm umbrella chart: the one definition of the stack (D12)
 config/                   claims-mapping.json, nlp/, branding/, keycloak/, provision.json, synthetic/
-compose/                  Compose files and profiles (keycloak, vocab, synthetic)
-charts/                   Helm umbrella chart (S6)
-scripts/                  build-web.sh (branding overlay), provisioning
-.env.example              every variable the stack reads, placeholders only
-Makefile                  up, down, build, logs, vocab-import, provision
+scripts/                  local-secrets.sh, build-web.sh (branding overlay), provisioning
+Tiltfile                  local development on Rancher Desktop, kind or k3s
+generated/                git-ignored: local secrets
 ```
 
 ## Rules
 
 - **Secrets never enter the repo.**
-  - Never read or print `.env`. Use `.env.example`.
-  - Generated credentials go to volumes or `generated/`, which is git-ignored, and are never logged.
+  - Never read or print `.env` files, including the service repos' local ones, or anything in `generated/`.
+  - No secret has a value in `values.yaml`. Generated credentials go to `generated/` or Kubernetes Secrets, and are never logged.
 - **Fictional people only** in realm exports, seeds, docs and tests, e.g. `admin@example.com`, `Jane Doe`.
 - **Athena vocabulary files are licensed.** Mount them from a path the deployer supplies. Never commit them or bake them into an image.
 - **Pin every image tag and every third-party action.** No `latest` or `edge`.
@@ -77,7 +76,7 @@ Project agents in `.claude/agents/` are copied from `HDRUK/tech-team-claude-skil
 
 | Agent | Use for |
 |---|---|
-| `stack-platform-engineer` | Compose, Helm, Keycloak, init/provision jobs, CI. Defined in this repo |
+| `stack-platform-engineer` | Helm, Tilt, Keycloak, init/provision jobs, CI. Defined in this repo |
 | `docker-expert` | Dockerfiles and image hardening (A1, N1) |
 | `laravel-senior-backend` | API tickets A1–A4 |
 | `senior-python-developer` | NLP ticket N1, somop changes in S5 |
@@ -89,7 +88,14 @@ Project agents in `.claude/agents/` are copied from `HDRUK/tech-team-claude-skil
 
 ## Commands
 
-None yet. S0 adds the `Makefile`, and later tickets add the stack commands to this section. For the services' own commands, see their `CLAUDE.md`.
+```bash
+git submodule update --init           # services at their pinned tags
+helm lint charts/cohort-discovery
+tilt up                               # S1 onwards: the whole stack, local contexts only
+tilt down                             # keeps the data volumes
+```
+
+Later tickets add to this section. For the services' own commands, see their `CLAUDE.md`.
 
 ## Shared context
 

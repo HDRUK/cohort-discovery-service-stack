@@ -1,0 +1,2 @@
+Installed {{ .Chart.Name }} {{ .Chart.Version }} as {{ .Release.Name }} in {{ .Release.Namespace }}.
+Nothing is deployed yet: the services arrive with S1. See docs/getting-started.md.
