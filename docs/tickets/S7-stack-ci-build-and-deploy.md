@@ -19,6 +19,11 @@ From GitHub Actions, build web, API and NLP images from the pinned submodules, o
 3. On push to `main`: build the pinned versions, `helm install` them on a kind cluster in the runner, and run S1's "done when" as a smoke test.
 4. When `deploy` is true: `helm upgrade --install` to the D14 target with the built tags. Cluster credentials come from an environment secret, and the environment requires approval.
 5. Pin third-party actions to SHAs.
+6. Patterns worth borrowing from `AndyRae/cd-build`'s `build.api.yml`:
+   - native amd64 and arm64 runners (`ubuntu-24.04`, `ubuntu-24.04-arm`) pushing by digest, merged into one tag with `docker buildx imagetools create`, so Apple Silicon users don't emulate;
+   - skip the build when the tag already exists in GHCR, unless dispatched by hand;
+   - a PR job that builds without pushing when build inputs change;
+   - Dependabot for the Dockerfiles' base images and the actions, ignoring MySQL and Redis majors. Not its `:latest` tag or its actions pinned by major version only.
 
 ## Done when
 - Dispatching with a feature branch of web deploys that branch with the stack's config.

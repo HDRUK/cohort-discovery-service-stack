@@ -1,0 +1,107 @@
+{{- $name := include "cohort-discovery.name" (dict "root" . "component" "mysql") -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-initdb
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "mysql") | nindent 4 }}
+data:
+  01-omop-database.sql: |
+    CREATE DATABASE IF NOT EXISTS `{{ .Values.mysql.omopDatabase }}`;
+    GRANT ALL PRIVILEGES ON `{{ .Values.mysql.omopDatabase }}`.* TO '{{ .Values.mysql.username }}'@'%';
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "mysql") | nindent 4 }}
+  annotations:
+    tilt.dev/down-policy: keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- with .Values.mysql.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.mysql.storageSize }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "mysql") | nindent 4 }}
+spec:
+  selector:
+    {{- include "cohort-discovery.selectorLabels" (dict "root" . "component" "mysql") | nindent 4 }}
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "mysql") | nindent 4 }}
+spec:
+  serviceName: {{ $name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "cohort-discovery.selectorLabels" (dict "root" . "component" "mysql") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cohort-discovery.labels" (dict "root" . "component" "mysql") | nindent 8 }}
+    spec:
+      containers:
+        - name: mysql
+          image: {{ include "cohort-discovery.image" .Values.images.mysql }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          args:
+            - --local-infile=1
+          env:
+            - name: MYSQL_DATABASE
+              value: {{ .Values.mysql.appDatabase | quote }}
+            - name: MYSQL_USER
+              value: {{ .Values.mysql.username | quote }}
+            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "MYSQL_PASSWORD" "key" "mysql-password") | nindent 12 }}
+            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "MYSQL_ROOT_PASSWORD" "key" "mysql-root-password") | nindent 12 }}
+          ports:
+            - name: mysql
+              containerPort: 3306
+          readinessProbe:
+            exec:
+              command: ["mysqladmin", "ping", "--host=127.0.0.1", "--silent"]
+            periodSeconds: 5
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["mysqladmin", "ping", "--host=127.0.0.1", "--silent"]
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.mysql.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ $name }}-data
+        - name: initdb
+          configMap:
+            name: {{ $name }}-initdb

@@ -1,0 +1,104 @@
+{{- $name := include "cohort-discovery.name" (dict "root" . "component" "nlp") -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "nlp") | nindent 4 }}
+data:
+  rules.json: |
+    {{- .Values.nlp.rulesJson | default (.Files.Get "files/nlp/rules.json") | nindent 4 }}
+  mappings.json: |
+    {{- .Values.nlp.mappingsJson | default (.Files.Get "files/nlp/mappings.json") | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "nlp") | nindent 4 }}
+spec:
+  selector:
+    {{- include "cohort-discovery.selectorLabels" (dict "root" . "component" "nlp") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.nlp.port }}
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "nlp") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "cohort-discovery.selectorLabels" (dict "root" . "component" "nlp") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cohort-discovery.labels" (dict "root" . "component" "nlp") | nindent 8 }}
+      annotations:
+        checksum/nlp-config: {{ printf "%s%s" (.Values.nlp.rulesJson | default (.Files.Get "files/nlp/rules.json")) (.Values.nlp.mappingsJson | default (.Files.Get "files/nlp/mappings.json")) | sha256sum }}
+    spec:
+      initContainers:
+        {{- include "cohort-discovery.waitForBootstrap" . | nindent 8 }}
+      containers:
+        - name: nlp
+          image: {{ include "cohort-discovery.image" .Values.images.nlp }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+            - name: PORT
+              value: {{ .Values.nlp.port | quote }}
+            - name: APP_ENV
+              value: {{ .Values.nlp.appEnv | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.nlp.logLevel | quote }}
+            - name: DB_HOST
+              value: {{ include "cohort-discovery.name" (dict "root" . "component" "mysql") }}
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_NAME
+              value: {{ .Values.mysql.appDatabase | quote }}
+            - name: OMOP_DB_NAME
+              value: {{ .Values.mysql.omopDatabase | quote }}
+            - name: DB_USER
+              value: {{ .Values.mysql.username | quote }}
+            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "DB_PASS" "key" "mysql-password") | nindent 12 }}
+            - name: RULES_PATH
+              value: /config/nlp/rules.json
+            - name: MAPPINGS_PATH
+              value: /config/nlp/mappings.json
+            {{- range $key, $value := .Values.nlp.extraEnv }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.nlp.port }}
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.nlp.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /config/nlp
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: {{ $name }}-config

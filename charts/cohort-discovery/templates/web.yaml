@@ -1,0 +1,77 @@
+{{- $name := include "cohort-discovery.name" (dict "root" . "component" "web") -}}
+{{- $apiUrl := printf "http://%s:%v" (include "cohort-discovery.name" (dict "root" . "component" "api")) .Values.api.port -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "web") | nindent 4 }}
+spec:
+  selector:
+    {{- include "cohort-discovery.selectorLabels" (dict "root" . "component" "web") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.web.port }}
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "web") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "cohort-discovery.selectorLabels" (dict "root" . "component" "web") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cohort-discovery.labels" (dict "root" . "component" "web") | nindent 8 }}
+    spec:
+      initContainers:
+        - name: wait-for-api
+          image: {{ include "cohort-discovery.image" .Values.images.curl }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command:
+            - sh
+            - -c
+            - until curl --silent --fail --output /dev/null {{ $apiUrl }}/up; do echo "Waiting for {{ $apiUrl }}..."; sleep 5; done
+      containers:
+        - name: web
+          image: {{ include "cohort-discovery.image" .Values.images.web }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+            - name: PORT
+              value: {{ .Values.web.port | quote }}
+            - name: APPLICATION_MODE
+              value: standalone
+            - name: API_BASE_URL
+              value: {{ $apiUrl }}
+            - name: COOKIE_TOKEN_NAME
+              value: {{ .Values.web.cookieTokenName | quote }}
+            {{- range $key, $value := .Values.web.extraEnv }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.web.port }}
+          readinessProbe:
+            httpGet:
+              path: /favicon.ico
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /favicon.ico
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.web.resources | nindent 12 }}

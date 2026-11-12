@@ -21,12 +21,12 @@ HDR UK's own dev, preprod and prod deployments are separate and must keep workin
 
 ## Status
 
-Planning is done and S0 (scaffold) is in progress. The plan is in `docs/`:
+Planning is done, S0 (scaffold) and S1 (Helm core and Tilt) are in review. The plan is in `docs/`:
 
 | File | What |
 |---|---|
 | `docs/README.md` | Aims, ticket tracker (status, repo, dependencies), suggested order |
-| `docs/01-decisions.md` | Agreed decisions (D1–D5, D10–D12) and open ones, each with a recommendation |
+| `docs/01-decisions.md` | Agreed decisions (D1–D5, D10–D12, D15, D17) and open ones, each with a recommendation |
 | `docs/02-verified-facts.md` | The state of every repo involved, with file paths. Read this before exploring |
 | `docs/tickets/` | One self-contained plan per ticket |
 
@@ -51,7 +51,9 @@ The planned layout, created by S0:
 ```
 services/{web,api,nlp}/   git submodules pinned to release tags (D5)
 charts/cohort-discovery/  Helm umbrella chart: the one definition of the stack (D12)
-config/                   claims-mapping.json, nlp/, branding/, keycloak/, provision.json, synthetic/
+  files/                  config the chart reads, each overridable through values (D17):
+                          nlp/, api-init/, keycloak/, synthetic/, claims-mapping.json, provision.json
+config/branding/          branding overlay, a web build input the chart doesn't read (W3)
 scripts/                  local-secrets.sh, build-web.sh (branding overlay), provisioning
 Tiltfile                  local development on Rancher Desktop, kind or k3s
 generated/                git-ignored: local secrets
@@ -90,10 +92,14 @@ Project agents in `.claude/agents/` are copied from `HDRUK/tech-team-claude-skil
 
 ```bash
 git submodule update --init           # services at their pinned tags
-helm lint charts/cohort-discovery
-tilt up                               # S1 onwards: the whole stack, local contexts only
-tilt down                             # keeps the data volumes
+scripts/local-secrets.sh              # writes generated/secrets.values.yaml once; Tilt runs it too
+helm lint charts/cohort-discovery -f generated/secrets.values.yaml
+export GITHUB_TOKEN=$(gh auth token)  # the API image build needs it until A1
+tilt up                               # the whole stack, local contexts only
+tilt down                             # keeps the MySQL volume
 ```
+
+`helm template` output contains the secrets, so don't print it. To inspect a render, pass a placeholder secrets file instead of `generated/secrets.values.yaml`.
 
 Later tickets add to this section. For the services' own commands, see their `CLAUDE.md`.
 

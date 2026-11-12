@@ -11,15 +11,16 @@ The repo layout every later ticket builds on.
    ```
    services/{web,api,nlp}/       submodules
    charts/cohort-discovery/      the umbrella chart (D12): Chart.yaml, values.yaml, templates/
+     files/                      config the chart reads, overridable through values (D17, moved here by S1)
+       nlp/{rules,mappings}.json copied from the NLP defaults
+       keycloak/                 S2's realm
+       synthetic/                S5's somop configs
    config/
-     nlp/{rules,mappings}.json   copied from the NLP defaults
-     branding/                   W3's neutral default
-     keycloak/                   S2's realm
-     synthetic/                  S5's somop configs
+     branding/                   W3's neutral default, a web build input
    scripts/                      build-web.sh (W3), helpers
    Tiltfile                      local development (D12)
    ```
-   `config/claims-mapping.json` (A3, needs D9) and `config/provision.json` (S4) are added by those tickets.
+   `charts/cohort-discovery/files/claims-mapping.json` (A3, needs D9) and `charts/cohort-discovery/files/provision.json` (S4) are added by those tickets.
 3. The Tiltfile only allows local contexts (`allow_k8s_contexts`), so `tilt up` can't touch a shared cluster by accident.
 4. Write `docs/getting-started.md`, which later tickets fill in.
 

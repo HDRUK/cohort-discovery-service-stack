@@ -3,7 +3,7 @@
 **Repo:** this one · **Depends on:** S1, A2 · **Decisions:** D4
 
 ## Goal
-After the core is up, a provisioning Job creates custodians, collection hosts and collections from `config/provision.json` through the API, using a seeded service account. It stores each host's BUNNY credentials in a Kubernetes Secret.
+After the core is up, a provisioning Job creates custodians, collection hosts and collections from `charts/cohort-discovery/files/provision.json` through the API, using a seeded service account. It stores each host's BUNNY credentials in a Kubernetes Secret.
 
 ## Context
 The endpoints are in `02-verified-facts.md` (API):
@@ -13,7 +13,7 @@ The endpoints are in `02-verified-facts.md` (API):
 - **Check first:** service accounts authenticate with basic auth on `/api/v1/services/caller/*`. Find out whether a service account can call the host and collection endpoints, which sit under `decode.jwt`. If it can't, either sign in as the bootstrap admin or raise an API ticket. Ask before choosing.
 
 ## Steps
-1. `config/provision.json`: custodians, then hosts per custodian, then collections per host. Each collection names the somop config it uses (S5).
+1. `charts/cohort-discovery/files/provision.json`: custodians, then hosts per custodian, then collections per host. Each collection names the somop config it uses (S5).
 2. A small script (shell with `curl` and `jq`, or Python, in a pinned image with no other dependencies), run as a Job with a ServiceAccount allowed to create Secrets in its namespace. It:
    - authenticates;
    - finds or creates each custodian, host and collection by name;

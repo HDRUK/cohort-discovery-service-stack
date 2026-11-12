@@ -2,7 +2,7 @@
 
 > **AI disclosure:** Drafted with Claude Code on 2026-11-11 from a read of `project-daphne-web`, `project-daphne-api`, `project-daphne-nlp`, `somop`, `project-daphne-bunny-config`, `cohort-discovery-service-evaluator` and `cohort-discovery-service-docs`.
 
-**Status:** plan written. Decisions D1–D5 and D10–D12 are agreed; the rest are open. S0 is in progress.
+**Status:** plan written. Decisions D1–D5, D10–D12, D15 and D17 are agreed; the rest are open. S0 and S1 are in review.
 
 ## Aims
 
@@ -20,6 +20,7 @@
 | [01-decisions.md](01-decisions.md) | Agreed and open decisions |
 | [02-verified-facts.md](02-verified-facts.md) | The current state of each repo, checked 2026-11-11 |
 | [tickets/](tickets/) | One plan per ticket, written so an agent can start from that file plus `02-verified-facts.md` |
+| [alternatives/](alternatives/) | Other ways to run the service, such as [Docker Compose](alternatives/docker-compose.md) |
 
 ## How to pick up a ticket
 
@@ -45,8 +46,8 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [W2](tickets/W2-web-build-and-runtime-variables.md) | web | **Research:** build-time vs run-time variables and their knock-on effects | – | todo |
 | [W3](tickets/W3-web-branding-completeness.md) | web | Branding fully overridable from `branding/`, plus a neutral default | D6 | todo |
 | [N1](tickets/N1-nlp-image-and-config.md) | nlp | Publish the image, document the mounts | D2 | todo |
-| [S0](tickets/S0-stack-scaffold.md) | stack | Scaffold: submodules, chart and Tiltfile skeletons, `config/` layout | D5 | in progress |
-| [S1](tickets/S1-stack-helm-core.md) | stack | Helm core and Tilt: data stores, services, init, scheduler | S0 | todo |
+| [S0](tickets/S0-stack-scaffold.md) | stack | Scaffold: submodules, chart and Tiltfile skeletons, `config/` layout | D5 | in review |
+| [S1](tickets/S1-stack-helm-core.md) | stack | Helm core and Tilt: data stores, services, init, scheduler | S0 | in review |
 | [S2](tickets/S2-stack-keycloak.md) | stack | Throwaway Keycloak in the chart, wired as SSO | S1, A3 | todo |
 | [S3](tickets/S3-stack-omop-vocabulary.md) | stack | OMOP vocabulary: minimal default and optional Athena import Job | S1 | todo |
 | [S4](tickets/S4-stack-provisioner.md) | stack | Provisioner: custodians, hosts and collections through the API | S1, A2 | todo |

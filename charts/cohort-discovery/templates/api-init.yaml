@@ -1,0 +1,77 @@
+{{- $name := include "cohort-discovery.name" (dict "root" . "component" "api-init") -}}
+{{- $mysql := include "cohort-discovery.name" (dict "root" . "component" "mysql") -}}
+{{- $redis := include "cohort-discovery.name" (dict "root" . "component" "redis") -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-scripts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "api-init") | nindent 4 }}
+data:
+  {{- (.Files.Glob "files/api-init/*").AsConfig | nindent 2 }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "api-init") | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "cohort-discovery.labels" (dict "root" . "component" "api-init") | nindent 8 }}
+      annotations:
+        checksum/scripts: {{ (.Files.Glob "files/api-init/*").AsConfig | sha256sum }}
+        checksum/api-env: {{ include (print $.Template.BasePath "/api-env.yaml") . | sha256sum }}
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-mysql
+          image: {{ include "cohort-discovery.image" .Values.images.mysql }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command:
+            - sh
+            - -c
+            - until mysqladmin ping --host={{ $mysql }} --silent; do echo "Waiting for {{ $mysql }}..."; sleep 3; done
+        - name: wait-for-redis
+          image: {{ include "cohort-discovery.image" .Values.images.redis }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command:
+            - sh
+            - -c
+            - until redis-cli -h {{ $redis }} ping | grep -q PONG; do echo "Waiting for {{ $redis }}..."; sleep 3; done
+      containers:
+        - name: api-init
+          image: {{ include "cohort-discovery.image" .Values.images.api }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command: ["bash", "/stack/api-init/api-init.sh"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "cohort-discovery.name" (dict "root" . "component" "api-env") }}
+          env:
+            - name: DEMO_USER_EMAIL
+              value: {{ .Values.bootstrap.adminEmail | quote }}
+            - name: DEMO_RESEARCHER_EMAIL
+              value: {{ .Values.bootstrap.researcherEmail | quote }}
+            - name: SCHEDULER_SERVICE_ACCOUNT_NAME
+              value: {{ .Values.scheduler.serviceAccountName | quote }}
+            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "DEMO_USER_PASSWORD" "key" "admin-password") | nindent 12 }}
+            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "DEMO_RESEARCHER_PASSWORD" "key" "researcher-password") | nindent 12 }}
+            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "SCHEDULER_CLIENT_ID" "key" "scheduler-client-id") | nindent 12 }}
+            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "SCHEDULER_CLIENT_SECRET" "key" "scheduler-client-secret") | nindent 12 }}
+            {{- include "cohort-discovery.apiSecretEnv" . | nindent 12 }}
+          volumeMounts:
+            - name: scripts
+              mountPath: /stack/api-init
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ $name }}-scripts
