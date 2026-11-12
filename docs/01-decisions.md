@@ -46,7 +46,8 @@ Agreed 2026-11-11. Helm's `.Files` can only read inside the chart, so the files 
 The alternative, a BuildKit named context (`--build-context branding=…`), needs a Dockerfile change that HDR UK's build would also have to accommodate.
 
 ### D7. What the published web image is
-**Recommendation:** one generic standalone image with neutral branding (W3), built with `NEXT_PUBLIC_*` values for `http://localhost:3000`. Changing URLs or branding means rebuilding through the stack's build script. Revisit after W2.
+**Recommendation:** one generic standalone image with neutral branding (W3), built with `NEXT_PUBLIC_*` values for `http://localhost:3000`. Changing URLs or branding means rebuilding through the stack's build script.
+**After W2 (2026-11-12):** the recommendation stands. Of the web's variables, only `NEXT_PUBLIC_TASK_URL` is wrong in a generic image served away from `localhost`, and only in what custodians are shown (the URL to give their BUNNY, and the footer's "API docs" link); no request uses it. Everything else is either read at run time already or doesn't apply to standalone. `NEXT_PUBLIC_LOGIN_URL` must stay unset. No HDR UK pipeline changes (D3). W4 makes the task URL a run-time setting without touching HDR UK's pipelines, if a no-rebuild image matters more later. See [web-variables.md](web-variables.md).
 
 ### D8. Where "access managed externally" is enforced
 **Recommendation:** in the API. It derives a flag from the claim-sync policy (workgroups, roles and custodians synced `always` and authoritative), rejects writes to them with 403, and exposes the flag to the web. The web only hides controls (W1). A web-only gate isn't a security boundary.

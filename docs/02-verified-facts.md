@@ -9,8 +9,11 @@ The state of each repo when the plan was written. Paths are relative to `~/Softw
   - No `output: 'standalone'` and no non-root user.
 - **Build args** (`.github/workflows/build-args.yaml`, values from GitHub environment vars): `API_BASE_URL`, `APPLICATION_MODE`, `NEXT_PUBLIC_LOGIN_URL`, `NEXT_PUBLIC_TASK_URL`, `NEXT_PUBLIC_USE_DEBUG_LOGS`, `NEXT_PUBLIC_USE_EXAMPLE_QUERY`. Integrated mode uses the `INT_*` copies.
 - **`NEXT_PUBLIC_SUPPORT_URL`** is read in `SupportPopOut.tsx` but is not passed as a build arg.
-- **Effectively build-time:** `APPLICATION_MODE` is read into module-level consts, e.g. `src/app/layout.tsx` and `admin/(tabs)/layout.tsx` (`ADMIN_TABS`). With `cacheComponents`, prerendered output keeps the value from build time.
-- **Read at runtime (server):** `API_BASE_URL` (`src/server/api.ts`), `HIDE_NAV`, `COOKIE_TOKEN_NAME`, `DEFAULT_*` and `CONFIG_*` (`src/providers/ServerDefaultProvider.tsx`).
+- **Build time and run time** (checked 2026-11-12 at `v1.12.0` by running the built image; the detail is in [web-variables.md](web-variables.md)):
+  - A `NEXT_PUBLIC_*` variable set at build time is inlined into browser and server chunks, and run-time changes are ignored. One unset at build time stays `process.env.X`: the server reads the run-time value and the browser gets `undefined`.
+  - Server-only variables, including the module-level `APPLICATION_MODE` consts (`src/app/layout.tsx`, `admin/[tabId]/page.tsx` `TABS`), are read at run time on every route rendered per request. Only the five fully static routes (`/403`, `/terms-and-conditions`, `/about/privacy-policy`, `/user-not-found`, not-found) keep build-time values. The earlier note that `APPLICATION_MODE` is "effectively build-time" was wrong, and `ADMIN_TABS` in `admin/(tabs)/layout.tsx` doesn't exist at `v1.12.0`.
+  - `Custom403.tsx` is a client component reading `APPLICATION_MODE`, which is always `undefined` in the browser.
+- **Read at runtime (server):** `API_BASE_URL` (`src/lib/apiClient.ts`, plus the download and logout route handlers), `HIDE_NAV`, `COOKIE_TOKEN_NAME`, `DEFAULT_*` and `CONFIG_*` (`src/providers/ServerDefaultProvider.tsx`).
 - **Branding**
   - The `@branding/*` alias points at `branding/`, which holds `branding.config.ts`, `theme.ts`, `assets/logo.svg` and `legal/*.mdx`. It's resolved at build time.
   - The defaults are HDR UK's.
@@ -21,9 +24,9 @@ The state of each repo when the plan was written. Paths are relative to `~/Softw
     - The HDR UK chrome is controlled by `useHdrukChrome` (the `hdruk-uk-theme` flag plus `hdrukChromeInStandalone`).
 - **Workgroups**
   - Actions in `src/actions/workgroup/`: `createWorkgroup`, `updateWorkgroupMembers`, `removeUsersFromWorkgroup`, `addCollectionsToWorkgroup`, `removeCollectionsFromWorkgroup`.
-  - UI in `src/app/(protected)/(admin)/admin/(tabs)/components/Workgroups{Left,Middle,Right}Panel.tsx`, using `src/modules/CreateWorkgroup` and `src/modules/UpdateWorkgroup`. Only the users table in the middle panel is gated, on `manageWorkgroupsInternal`.
+  - UI in `src/app/(protected)/(admin)/admin/[tabId]/components/Workgroups{Left,Middle,Right}Panel.tsx` (path at `v1.12.0`), using `src/modules/CreateWorkgroup` and `src/modules/UpdateWorkgroup`. Only the users table in the middle panel is gated, on `manageWorkgroupsInternal`.
   - `src/hooks/useFeatures.ts:45`: `manageWorkgroupsInternal = isStandalone || flags.ManageWorkgroupsInternally`, so standalone mode is always editable.
-- **Feature flags** come from the API (`src/server/data/features.ts`) and are merged with `DEFAULT_FLAGS` in `useFeatures`. They only load on protected pages.
+- **Feature flags** come from the API (`src/actions/getFeatureFlags.ts` at `v1.12.0`) and are merged with `DEFAULT_FLAGS` in `useFeatures`. They only load on protected pages.
 - **CI**
   - `dev_deployment.yaml`: a push to `dev` builds and deploys integrated. `workflow_dispatch` (any branch) or `[deploy-standalone]` in the commit message deploys to `dev-standalone`.
   - Building, pushing and deploying run in the external `HDRUK/github-actions-templates`, which pushes to GCP Artifact Registry.
