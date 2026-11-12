@@ -16,13 +16,13 @@ From GitHub Actions, build web, API and NLP images from the pinned submodules, o
    - api and nlp with their own Dockerfiles.
 
    Tag each image with the ref's short SHA and push to GHCR as packages scoped to the stack (e.g. `ghcr.io/hdruk/cohort-discovery-stack/web`), separate from the release images.
-3. On push to `main`: build the pinned versions and run S1's "done when" as a smoke test in the runner with Compose.
+3. On push to `main`: build the pinned versions, `helm install` them on a kind cluster in the runner, and run S1's "done when" as a smoke test.
 4. When `deploy` is true: `helm upgrade --install` to the D14 target with the built tags. Cluster credentials come from an environment secret, and the environment requires approval.
 5. Pin third-party actions to SHAs.
 
 ## Done when
 - Dispatching with a feature branch of web deploys that branch with the stack's config.
-- The Compose smoke test runs on every push to `main`.
+- The kind smoke test runs on every push to `main`.
 
 ## Verification
 A dispatch run on a test branch, and the smoke-test job passes.

@@ -1,6 +1,6 @@
 # S0. Stack: scaffold
 
-**Repo:** this one · **Depends on:** D5 · **Decisions:** D5, D11
+**Repo:** this one · **Depends on:** D5 · **Decisions:** D5, D11, D12
 
 ## Goal
 The repo layout every later ticket builds on.
@@ -9,24 +9,24 @@ The repo layout every later ticket builds on.
 1. Add submodules under `services/`: `web`, `api` and `nlp`, from `HDRUK/project-daphne-*`, each pinned to its latest release tag. Leave somop out until S5 decides whether it's a submodule or a published image.
 2. Layout:
    ```
-   services/{web,api,nlp}/     submodules
+   services/{web,api,nlp}/       submodules
+   charts/cohort-discovery/      the umbrella chart (D12): Chart.yaml, values.yaml, templates/
    config/
-     claims-mapping.json       A3's format, matching the Keycloak example's groups and roles
-     nlp/{rules,mappings}.json copied from the NLP defaults
-     branding/                 W3's neutral default
-     provision.json            S4's custodians, hosts and collections
-     synthetic/                S5's somop configs
-   compose/                    S1+
-   charts/                     S6
-   scripts/                    build-web.sh (W3), helpers
-   .env.example                every variable the stack reads, grouped by service, no real values
-   Makefile                    up, down, build, logs, vocab-import, provision
+     nlp/{rules,mappings}.json   copied from the NLP defaults
+     branding/                   W3's neutral default
+     keycloak/                   S2's realm
+     synthetic/                  S5's somop configs
+   scripts/                      build-web.sh (W3), helpers
+   Tiltfile                      local development (D12)
    ```
-3. `.env.example` placeholders must be obviously fake (`change-me`, `admin@example.com`), and `make up` should refuse to start while any `change-me` remains.
+   `config/claims-mapping.json` (A3, needs D9) and `config/provision.json` (S4) are added by those tickets.
+3. The Tiltfile only allows local contexts (`allow_k8s_contexts`), so `tilt up` can't touch a shared cluster by accident.
 4. Write `docs/getting-started.md`, which later tickets fill in.
 
 ## Done when
-`git submodule update --init` checks out all three services at tags, and `make` prints the targets.
+- `git submodule update --init` checks out all three services at tags.
+- `helm lint charts/cohort-discovery` passes.
+- The Tiltfile loads without errors.
 
 ## Verification
 A fresh `git clone --recurse-submodules` works.

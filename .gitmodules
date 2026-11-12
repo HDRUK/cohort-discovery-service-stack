@@ -1,0 +1,9 @@
+[submodule "services/web"]
+	path = services/web
+	url = https://github.com/HDRUK/project-daphne-web.git
+[submodule "services/api"]
+	path = services/api
+	url = https://github.com/HDRUK/project-daphne-api.git
+[submodule "services/nlp"]
+	path = services/nlp
+	url = https://github.com/HDRUK/project-daphne-nlp.git

@@ -22,6 +22,17 @@ Each is pinned to a release tag. CI can override the pin with any ref (S7).
 ### D11. Repo name: `cohort-discovery-service-stack`
 Agreed 2026-11-11. The repo is `HDRUK/cohort-discovery-service-stack` (private for now).
 
+### D12. Helm and Tilt, no Compose
+Agreed 2026-11-11, replacing the earlier "Compose first" recommendation. The stack is one Helm umbrella chart, `charts/cohort-discovery/`. Tilt drives it locally, with images built from the submodules. Anyone else runs `helm install` on a local cluster (Rancher Desktop, kind, k3s). There is no Compose file and no `Makefile`.
+
+Everything a local install needs runs in the cluster and can be thrown away: MySQL, Redis, Keycloak, the vocabulary import and, later, the synthetic BUNNYs and their Postgres.
+
+### D10. Where the vocabulary is built
+Agreed 2026-11-11.
+- The API and NLP vocabulary DB stays MySQL. The minimal set (`migrations_omop` + `MinimalOmopSeeder`) is the default.
+- The full set is an optional Job that imports an Athena download the deployer supplies from a host path: `php artisan app:import-omop-vocabs /vocab --create-schema --bulk`, then `concepts:populate-ancestors`. Athena licensing means the stack never ships vocabulary files.
+- BUNNY's Postgres databases are loaded by omop-lite (S5).
+
 ## Open
 
 ### D6. How a deployer overrides web branding
@@ -37,15 +48,6 @@ The alternative, a BuildKit named context (`--build-context branding=…`), need
 ### D9. Format of the runtime claims mapping
 **Recommendation:** a JSON file at `CLAIMS_MAPPING_PATH`, with the same shape as the `workgroup_mappings` and `role_mappings` arrays in `config/claimsaccesscontrol.php`. It's read when the config loads, so it is in place before `config:cache` in `start.sh`. When the variable is unset, the PHP defaults apply. JSON avoids a YAML dependency.
 
-### D10. Where the vocabulary is built
-**Recommendation:**
-- The API and NLP vocabulary DB stays MySQL. The minimal set (`migrations_omop` + `MinimalOmopSeeder`) is the default.
-- The full set is a one-off job running `php artisan app:import-omop-vocabs /vocab --create-schema --bulk`, followed by `concepts:populate-ancestors`, from an Athena download the deployer supplies. Athena licensing means the stack never ships vocabulary files.
-- BUNNY's Postgres databases are loaded by omop-lite (S5).
-
-### D12. Compose or Helm first
-**Recommendation:** Compose first (S1–S5), then a Helm umbrella chart that mirrors it (S6). Compose is quicker to iterate on and is what most evaluators will run.
-
 ### D13. Licence
 Which licence the stack and the three service repos are released under. It has to be settled before A1 makes the `hdruk/*` composer packages public. Not a technical decision: it needs whoever owns open-sourcing at HDR UK.
 
@@ -59,4 +61,8 @@ Options:
 
 ### D15. Scheduled jobs
 Production uses Cloud Scheduler to call `POST /api/v1/services/caller/{command}`.
-**Recommendation:** a small scheduler container (a cron image running `curl`) that calls the same endpoints with a service account created by `app:bootstrap`. The API doesn't change.
+**Recommendation:** Kubernetes CronJobs (a small image running `curl`) that call the same endpoints with a service account created by `app:bootstrap`. The API doesn't change.
+
+### D16. How BUNNYs are added to a running stack
+The user wants BUNNYs added by hand once the core is up and collections are provisioned, "via somop or something more custom".
+**Recommendation:** a manual Tilt resource (and a plain script for non-Tilt installs) per collection. It runs `somop generate` as a Job, loads the result into a shared `postgres:16` with omop-lite, and installs a BUNNY Deployment that reads the host's credentials from the Kubernetes Secret S4 wrote. This uses somop for data only and lets the chart own every container, instead of somop's own `docker compose`.

@@ -86,6 +86,12 @@ The state of each repo when the plan was written. Paths are relative to `~/Softw
 - `project-daphne-bunny-config/omop/` has a MySQL Athena loader (`Dockerfile` on `mysql`, `loader.sh`), but its compose file mounts a hard-coded personal path.
 - **Committed secrets and paths:** `somop/docker-compose.multi.yaml` and `somop/out/*/docker-compose.run.yaml` contain BUNNY task API credentials and absolute `/Users/...` paths (see H1).
 
+## This repo (S0)
+
+- Submodule pins: web `v1.12.0`, api `v1.17.0`, nlp `v1.9.1`, the latest tags on 2026-11-11.
+- `config/nlp/` is copied from nlp `v1.9.1`.
+- `cohort-discovery-service-evaluator/init/api-init.sh` runs `migrate:fresh`, so it can't be reused as-is for an idempotent init Job.
+
 ## Prior art to reuse
 
 - `cohort-discovery-service-evaluator/compose.yaml`: mysql (with `init/mysql/01-omop.sql`), `api-init` (`init/api-init.sh`), nlp and api in standalone mode, with mounted Passport keys. It has no web and no Keycloak.
