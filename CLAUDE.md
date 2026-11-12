@@ -21,7 +21,7 @@ HDR UK's own dev, preprod and prod deployments are separate and must keep workin
 
 ## Status
 
-Planning is done, S0 (scaffold) and S1 (Helm core and Tilt) are in review. The plan is in `docs/`:
+Planning, S0 (scaffold) and S1 (Helm core and Tilt) are done. The plan is in `docs/`:
 
 | File | What |
 |---|---|
