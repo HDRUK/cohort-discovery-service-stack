@@ -20,6 +20,7 @@
 | [01-decisions.md](01-decisions.md) | Agreed and open decisions |
 | [02-verified-facts.md](02-verified-facts.md) | The current state of each repo, checked 2026-11-11 |
 | [tickets/](tickets/) | One plan per ticket, written so an agent can start from that file plus `02-verified-facts.md` |
+| [alternatives/](alternatives/) | Other ways to run the service, such as [Docker Compose](alternatives/docker-compose.md) |
 
 ## How to pick up a ticket
 

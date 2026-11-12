@@ -42,6 +42,7 @@ The state of each repo when the plan was written. Paths are relative to `~/Softw
   - Then `deploy:run` (the steps in `database/deployment-steps/`), the caches and `config:cache`, Horizon when `START_HORIZON=1`, and Octane.
   - It doesn't create Passport keys, the personal access client or an admin, and doesn't load OMOP.
 - **Mode:** `APP_OPERATION_MODE` (`config/system.php`), default `standalone`. Standalone means a local login (`POST /api/auth/login`, RS256 JWT signed with the Passport keys), plus OIDC SSO through `config/sso.php` with one env-wired provider `default` (`SSO_DEFAULT_*`).
+- **SSO** (checked 2026-11-12 at `v1.17.0`): `OidcDiscoveryService::assertUrlBelongsToIssuer` rejects any discovered `authorization_endpoint`, `token_endpoint`, `jwks_uri`, `userinfo_endpoint` or `end_session_endpoint` whose scheme, host or port differs from `SSO_DEFAULT_ISSUER`. `SSO_DEFAULT_DISCOVERY_URL` only moves the discovery document itself. So the API pod must reach the IdP at the same URL as the browser.
 - **Claims**
   - `config/claimsaccesscontrol.php`: `workgroup_mappings` and `role_mappings` are hard-coded arrays (`local => IdP value`). The sync policy is set by env: `CLAIM_SYNC_{WORKGROUPS,ROLES,CUSTODIANS}` (`never`, `first_login` or `always`), `*_AUTHORITATIVE`, `CLAIM_SYNC_ENSURE_DEFAULT_*` and `CLAIM_PROVISION_DEFAULTS_ON_CREATE`.
   - The claim names are set in `config/sso.php` (`SSO_DEFAULT_{WORKGROUPS,ROLES,CUSTODIANS}_CLAIM`).
@@ -83,6 +84,8 @@ The state of each repo when the plan was written. Paths are relative to `~/Softw
   - `somop multi run` does the same for several datasets.
   - It needs `--collection-id`, `--api-url` and the host's `--api-username`/`--api-password`.
 - **omop-lite** loads Postgres or MSSQL only. It can't load the API's MySQL vocabulary.
+  - With `SYNTHETIC=true` it loads its own bundled synthetic data, with no CSVs from somop. `AndyRae/cd-build` uses `omop-lite:0.9.4` this way, behind `hutch/bunny:1.9.9` availability (`TASK_API_TYPE=a`) and distribution (`b`) daemons.
+- **Service repos were renamed** to `HDRUK/cohort-discovery-service-{api,web,nlp}`. The `project-daphne-*` names still redirect.
 - `project-daphne-bunny-config/omop/` has a MySQL Athena loader (`Dockerfile` on `mysql`, `loader.sh`), but its compose file mounts a hard-coded personal path.
 - **Committed secrets and paths:** `somop/docker-compose.multi.yaml` and `somop/out/*/docker-compose.run.yaml` contain BUNNY task API credentials and absolute `/Users/...` paths (see H1).
 
@@ -117,7 +120,9 @@ Checked against api `v1.17.0`, web `v1.12.0` and nlp `v1.9.1` on Rancher Desktop
   - In standalone mode `NEXT_PUBLIC_LOGIN_URL` isn't needed: `getOrganisationUrl()` (`src/config/externalLinks.ts`) falls back to `branding.links.organisation`.
   - Sign-in is server side: the `standaloneSignIn` server action posts to `${API_BASE_URL}/api/auth/login` (`src/lib/apiClient.ts`, read at run time) and sets an httpOnly `token` cookie (`src/lib/authCookie.ts`). The cookie is `secure` when `NODE_ENV=production`, which the image sets. Chrome and Firefox treat `http://localhost` as secure, so they should keep the cookie; no browser was tested in S1, and Safari may refuse it.
   - Every `/login` request logs `Could not load sign-in methods: … During prerendering, fetch() rejects when the prerender is complete`. The page still renders the password method, so it's log noise from the runtime prerender. The stack's probes use `/favicon.ico` to avoid it.
+  - The `Secure` flag is upstream issue [cohort-discovery-service-web#245](https://github.com/HDRUK/cohort-discovery-service-web/issues/245), open on 2026-11-12. It also blocks sign-in over plain `http` on any host other than `localhost`.
   - The cookie name comes from `COOKIE_TOKEN_NAME` at run time (`src/config/internals.ts`, default `token`). The stack sets `cds_stack_token` (`web.cookieTokenName`) so it doesn't share a sign-in with a development web app on `localhost`, whose token the stack's API rejects with `Token signature mismatch`.
+  - SSO logout (`src/app/api/auth/logout/route.ts`) redirects the browser to `${API_BASE_URL}/api/auth/sso/<provider>/logout`, using the run-time `API_BASE_URL`, so under SSO that value must work in the browser.
   - Production also sets `SESSION_SECRET` for the web, but nothing in `src/` reads it at `v1.12.0`.
 - **NLP:** it reaches `/health/ready` 200 with every capability loaded, even when `latest_distributions` is empty.
 - **Tilt**

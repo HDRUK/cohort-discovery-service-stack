@@ -2,6 +2,8 @@
 
 S1 runs the core: MySQL, Redis, the API (with its Horizon queue worker and scheduled jobs), NLP and the web app, in standalone mode with the minimal OMOP vocabulary and a seeded admin. Keycloak (S2), the full vocabulary (S3), provisioning (S4) and synthetic collections (S5) come later.
 
+No local Kubernetes cluster? See [Running with Docker Compose](alternatives/docker-compose.md) for a community alternative.
+
 ## You need
 
 - A local Kubernetes cluster: Rancher Desktop (with the Docker runtime), Docker Desktop, OrbStack, minikube, or kind/k3d with a cluster named `cohort-discovery`. Allow it about 4 CPUs and 8 GB of memory.
