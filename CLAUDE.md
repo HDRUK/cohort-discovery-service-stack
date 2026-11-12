@@ -52,9 +52,9 @@ The planned layout, created by S0:
 services/{web,api,nlp}/   git submodules pinned to release tags (D5)
 charts/cohort-discovery/  Helm umbrella chart: the one definition of the stack (D12)
   files/                  config the chart reads, each overridable through values (D17):
-                          nlp/, api-init/, keycloak/, synthetic/, claims-mapping.json, provision.json
-config/branding/          branding overlay, a web build input the chart doesn't read (W3)
-scripts/                  local-secrets.sh, build-web.sh (branding overlay), provisioning
+                          nlp/, api/, api-init/, keycloak/, synthetic/, provision.json
+config/branding/          branding overlay, a web build input the chart doesn't read (D6, S8)
+scripts/                  local-secrets.sh, build-web.sh (branding overlay, D6), provisioning
 Tiltfile                  local development on Rancher Desktop, kind or k3s
 generated/                git-ignored: local secrets
 ```

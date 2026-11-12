@@ -1,6 +1,6 @@
 # A4. API: externally managed access
 
-**Repo:** `project-daphne-api` · **Depends on:** A3, D8 · **Decisions:** D4, D8
+**Repo:** `project-daphne-api` · **Depends on:** D8 · **Decisions:** D4, D8
 
 ## Goal
 When the IdP is authoritative for workgroups (and roles and custodians), the API refuses changes to them through its own endpoints and tells the web, so the web can show them read-only (W1).

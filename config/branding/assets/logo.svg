@@ -1,0 +1,6 @@
+<svg width="196" height="28" viewBox="0 0 196 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="3" width="26" height="5" rx="2.5" fill="#E8A33D"/>
+<rect x="4" y="11.5" width="18" height="5" rx="2.5" fill="#E8A33D" fill-opacity="0.8"/>
+<rect x="9" y="20" width="8" height="5" rx="2.5" fill="#E8A33D" fill-opacity="0.6"/>
+<text x="36" y="20" fill="#FFFFFF" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="600" letter-spacing="0.2">Feasibility Tool</text>
+</svg>

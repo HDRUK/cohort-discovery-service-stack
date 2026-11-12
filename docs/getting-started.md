@@ -34,7 +34,7 @@ On load, the Tiltfile:
 1. refuses any context that isn't a known local cluster;
 2. runs `scripts/local-secrets.sh`, which writes random credentials to `generated/secrets.values.yaml` (mode 0600, git-ignored) the first time and leaves the file alone after that;
 3. creates the `cohort-discovery` namespace;
-4. builds the API, NLP and web images from `services/` and installs the chart.
+4. builds the API, NLP and web images from `services/`, the web with the stack's branding (see [Branding](#branding)), and installs the chart.
 
 The first build takes a while: the API and web images each take several minutes. The token reaches the API build only as a BuildKit secret, never on disk or in an image layer.
 
@@ -100,14 +100,15 @@ The chart is the whole definition; Tilt only builds images and forwards ports. W
 export GITHUB_TOKEN=$(gh auth token)
 docker build --secret id=github_token,env=GITHUB_TOKEN -t ghcr.io/hdruk/cohort-discovery-api:v1.17.0 services/api
 docker build -t ghcr.io/hdruk/cohort-discovery-nlp:v1.9.1 services/nlp
-docker build \
+scripts/build-web.sh ghcr.io/hdruk/cohort-discovery-web:v1.12.0 \
   --build-arg APPLICATION_MODE=standalone \
   --build-arg API_BASE_URL=http://localhost:8100 \
   --build-arg NEXT_PUBLIC_TASK_URL=http://localhost:8100/api/v1 \
   --build-arg NEXT_PUBLIC_USE_EXAMPLE_QUERY=false \
-  --build-arg NEXT_PUBLIC_USE_DEBUG_LOGS=false \
-  -t ghcr.io/hdruk/cohort-discovery-web:v1.12.0 services/web
+  --build-arg NEXT_PUBLIC_USE_DEBUG_LOGS=false
 ```
+
+The web is built through `scripts/build-web.sh` so that it carries the stack's branding (see [Branding](#branding)).
 
 For kind or k3d, load the images into the cluster afterwards (`kind load docker-image …`, `k3d image import …`).
 
@@ -161,6 +162,23 @@ kubectl -n cohort-discovery logs job/task-cleanup-now
 | `scheduler.*` | Scheduled jobs |
 | `secrets.*` | Set only by `generated/secrets.values.yaml`; never in `values.yaml` |
 
+## Branding
+
+The web is branded at build time, so changing the branding means rebuilding the web image. The stack ships a neutral brand, "Feasibility Tool", in `config/branding/`:
+
+| File | What |
+|---|---|
+| `branding.config.ts` | Product name, sign-in page text, organisation name and link, legal page titles |
+| `theme.ts` | Colours and font, merged over the web's base theme. Set `primary` and `secondary`, or the web's own defaults show through |
+| `assets/logo.svg` | The header logo, shown on the dark header at 30px high |
+| `legal/termsAndConditions.mdx`, `legal/privacyPolicy.mdx` | Placeholders that say they must be replaced before anyone signs in |
+
+`scripts/build-web.sh <image> [docker build options]` copies `services/web` to a temporary folder, copies `config/branding/` over its `branding/`, and runs the web's own Dockerfile (D6). Any file you leave out of `config/branding/` falls back to the web's own. Tilt rebuilds the web when anything in `config/branding/` changes.
+
+Before a real deployment, replace the legal pages and set `organisationName`, `copyrightHolder` and `links.organisation` in `branding.config.ts`. Footer links such as the cookie notice are built from `links.organisation` unless `links.cookieNotice` and `links.accessibilityStatement` are set.
+
+Some HDR UK branding still comes from the web itself rather than `branding/`, for example the copyright text and the favicon. W3 tracks fixing that upstream.
+
 ## Layout
 
 | Path | What |
@@ -171,9 +189,9 @@ kubectl -n cohort-discovery logs job/task-cleanup-now
 | `charts/cohort-discovery/files/api-init/` | the init Job's script |
 | `charts/cohort-discovery/files/keycloak/` | Keycloak realm (S2) |
 | `charts/cohort-discovery/files/synthetic/` | somop configs (S5) |
-| `config/branding/` | branding overlay, a web build input (W3) |
+| `config/branding/` | branding overlay, a web build input (D6, S8) |
 | `scripts/` | `local-secrets.sh`, and later build and provisioning scripts |
 | `generated/` | git-ignored local secrets |
 | `Tiltfile` | local development |
 
-`files/claims-mapping.json` arrives with A3 and `files/provision.json` with S4.
+`files/api/claimsaccesscontrol.php` arrives with S2 (D9) and `files/provision.json` with S4.
