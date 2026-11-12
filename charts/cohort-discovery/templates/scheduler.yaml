@@ -1,0 +1,49 @@
+{{- if .Values.scheduler.enabled }}
+{{- $root := . -}}
+{{- $apiUrl := printf "http://%s:%v" (include "cohort-discovery.name" (dict "root" . "component" "api")) .Values.api.port -}}
+{{- range $command, $schedule := .Values.scheduler.jobs }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "cohort-discovery.name" (dict "root" $root "component" $command) }}
+  namespace: {{ $root.Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" $root "component" "scheduler") | nindent 4 }}
+spec:
+  schedule: {{ $schedule | quote }}
+  timeZone: {{ $root.Values.scheduler.timeZone | quote }}
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 60
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 120
+      template:
+        metadata:
+          labels:
+            {{- include "cohort-discovery.labels" (dict "root" $root "component" "scheduler") | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: call-api
+              image: {{ include "cohort-discovery.image" $root.Values.images.curl }}
+              imagePullPolicy: {{ $root.Values.imagePullPolicy }}
+              command:
+                - sh
+                - -c
+                - >-
+                  curl --silent --show-error --fail-with-body --max-time 30
+                  --retry 5 --retry-delay 10 --retry-connrefused
+                  --request POST
+                  --header "Accept: application/json"
+                  --user "${SCHEDULER_CLIENT_ID}:${SCHEDULER_CLIENT_SECRET}"
+                  --write-out "\n{{ $command }}: HTTP %{http_code}\n"
+                  {{ $apiUrl }}/api/v1/services/caller/{{ $command }}
+              env:
+                {{- include "cohort-discovery.secretEnv" (dict "root" $root "name" "SCHEDULER_CLIENT_ID" "key" "scheduler-client-id") | nindent 16 }}
+                {{- include "cohort-discovery.secretEnv" (dict "root" $root "name" "SCHEDULER_CLIENT_SECRET" "key" "scheduler-client-secret") | nindent 16 }}
+{{- end }}
+{{- end }}

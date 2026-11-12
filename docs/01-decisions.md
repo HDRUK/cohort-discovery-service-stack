@@ -33,6 +33,12 @@ Agreed 2026-11-11.
 - The full set is an optional Job that imports an Athena download the deployer supplies from a host path: `php artisan app:import-omop-vocabs /vocab --create-schema --bulk`, then `concepts:populate-ancestors`. Athena licensing means the stack never ships vocabulary files.
 - BUNNY's Postgres databases are loaded by omop-lite (S5).
 
+### D15. Scheduled jobs
+Agreed 2026-11-11. Production uses Cloud Scheduler to call `POST /api/v1/services/caller/{command}`. The stack uses Kubernetes CronJobs (a small pinned image running `curl`) that call the same endpoints with a seeded service account. The API doesn't change.
+
+### D17. Config files live in the chart
+Agreed 2026-11-11. Helm's `.Files` can only read inside the chart, so the files the chart consumes (NLP rules and mappings, the Keycloak realm, the claims mapping, `provision.json`, somop configs) are defaults under `charts/cohort-discovery/files/`, each overridable through values. `helm install` needs no extra flags. `config/branding/` stays at the repo root, because it's a web build input, not something the chart reads.
+
 ## Open
 
 ### D6. How a deployer overrides web branding
@@ -59,10 +65,14 @@ Options:
 
 **Recommendation:** an existing namespace through Helm, because it matches how `dev-standalone` is deployed today. That means S7 can't deploy until S6 is done. Until then it builds and pushes only.
 
-### D15. Scheduled jobs
-Production uses Cloud Scheduler to call `POST /api/v1/services/caller/{command}`.
-**Recommendation:** Kubernetes CronJobs (a small image running `curl`) that call the same endpoints with a service account created by `app:bootstrap`. The API doesn't change.
-
 ### D16. How BUNNYs are added to a running stack
 The user wants BUNNYs added by hand once the core is up and collections are provisioned, "via somop or something more custom".
 **Recommendation:** a manual Tilt resource (and a plain script for non-Tilt installs) per collection. It runs `somop generate` as a Job, loads the result into a shared `postgres:16` with omop-lite, and installs a BUNNY Deployment that reads the host's credentials from the Kubernetes Secret S4 wrote. This uses somop for data only and lets the chart own every container, instead of somop's own `docker compose`.
+
+### D18. Which Redis the stack runs
+Found during S1. Redis 7.4 and later aren't under an OSI licence: 7.4 is RSALv2/SSPL, and 8.x adds AGPL. 7.2 is the last BSD-licensed line. The API only needs a Redis-protocol server for its queue, cache and sessions.
+**Recommendation:** the official `redis:7.2.x` image for now (S1 pins `7.2.13`). Review it in H1, together with the licence decision (D13), and move to Valkey (`valkey/valkey`, BSD) if 7.2 reaches end of life first.
+
+### D19. How `app:bootstrap` gets the scheduler's credentials
+Found during S1. `service-account:create` prints the secret once, and A2 plans to write it to `BOOTSTRAP_SERVICE_ACCOUNT_FILE`. On Kubernetes, that file then has to become a Secret, which needs RBAC for the bootstrap Job or a second step. S1 avoids this: `scripts/local-secrets.sh` generates the client ID and secret, they live in the stack's Secret, and the init Job finds the account by name, then creates it, leaves it alone, or updates it to match. The `ServiceAccount` model allows this, because `client_id` is fillable and `client_secret` is cast to `hashed`.
+**Recommendation:** A2 accepts the credentials from env (for example `BOOTSTRAP_SERVICE_ACCOUNT_CLIENT_ID` and `BOOTSTRAP_SERVICE_ACCOUNT_CLIENT_SECRET`) with the same find-then-converge behaviour, and keeps the file option for installs that let the API generate them.

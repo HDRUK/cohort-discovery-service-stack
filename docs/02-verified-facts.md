@@ -89,8 +89,44 @@ The state of each repo when the plan was written. Paths are relative to `~/Softw
 ## This repo (S0)
 
 - Submodule pins: web `v1.12.0`, api `v1.17.0`, nlp `v1.9.1`, the latest tags on 2026-11-11.
-- `config/nlp/` is copied from nlp `v1.9.1`.
+- `charts/cohort-discovery/files/nlp/` is copied from nlp `v1.9.1` (in `config/nlp/` until S1 moved it, D17).
 - `cohort-discovery-service-evaluator/init/api-init.sh` runs `migrate:fresh`, so it can't be reused as-is for an idempotent init Job.
+
+## Learnt running the stack (S1, 2026-11-11)
+
+Checked against api `v1.17.0`, web `v1.12.0` and nlp `v1.9.1` on Rancher Desktop (k3s 1.31, Docker 26.1.5), Tilt 0.33.14 and Helm 3.17.1.
+
+- **API**
+  - Passport keys can come from env: `PASSPORT_PRIVATE_KEY` and `PASSPORT_PUBLIC_KEY` (`config/passport.php`). `LocalPersonalAccessTokenService.php` and `DecodeJwt.php` use them before falling back to `storage/oauth-*.key`. Production sets them from Secret Manager (`cohortdiscovery*/locals.tf`).
+  - `docker/start.sh` defaults `PORT` to 8080; the Dockerfile's `EXPOSE 8100` is misleading. The stack sets `PORT=8100`.
+  - `START_HORIZON` (default 1) runs Horizon in the background of the API container. The stack sets `START_HORIZON=0` and runs `php artisan horizon` in its own `queue` Deployment. `config/horizon.php` has supervisors for `APP_ENV` `production`, `preprod`, `dev` and `local`. In `production`, the Horizon dashboard is closed unless `HORIZON_SECRET` is set (`HorizonServiceProvider.php`).
+  - The image's `php.development.ini` has `display_errors` on. Any PHP CLI script prints a deprecation notice from `vendor/darkaonline/l5-swagger/src/helpers.php:15` to **stdout** before its own output, so scripts that parse output must send errors to stderr (`ini_set('display_errors', 'stderr')`).
+  - Seeder repeat behaviour:
+    - `WorkgroupSeeder` and `RolesAndPermissionsSeeder` create rows without checking, so they can't run twice.
+    - `StateSeeder` (`firstOrCreate`), `FeatureSeeder` (skips existing flags, purges retired ones) and `PersonalAccessClientSeeder` (exists check) can.
+    - `MinimalOmopSeeder` upserts 3,886 concept rows (3,884 distinct) and 4,031 `concept_ancestor` rows.
+    - `StandaloneDemoSeeder` truncates `custodians`, `users`, `user_has_roles`, `user_has_workgroups` and `custodian_has_users`. It then creates "Demo Custodian", "Demo Network", an admin from `DEMO_USER_*` (role `admin`, workgroup `ADMIN`) and a researcher from `DEMO_RESEARCHER_*` (role `user`, workgroup `UK-RESEARCH`). If those are unset, `config/system.php` falls back to `demo.user@domain.com`, `demo.researcher@domain.com` and a fixed weak password.
+  - `deploy:run` on a fresh database runs nine steps, which materialise `latest_distributions` and run `FeatureSeeder`.
+  - `ServiceAccount` (`app/Models/ServiceAccount.php`) has `client_id` fillable and `client_secret` cast to `hashed`, so an account can be created with credentials chosen in advance.
+  - `POST /api/v1/services/caller/{command}` returns 200 `{"message":"success","data":{"data":null}}` for all four commands on an empty install. The `throttle:polling` limit is `API_RATE_LIMIT` per minute per IP.
+  - `POST /api/auth/login` with `{email, password}` returns 200 and an `access_token` (Bearer). A wrong password returns 401. `GET /up` is the health check.
+  - PHP's `pdo_mysql` and NLP's MySQL connector both work against `mysql:8.4` with its default `caching_sha2_password`.
+- **Cloud Scheduler:** all four jobs run every minute (`* * * * *`, `Etc/UTC`) in dev, preprod and prod (`cloud_scheduler` in each `locals.tf`).
+- **Web**
+  - The Dockerfile declares `ARG`s but doesn't turn them into `ENV`. They're still visible to `RUN npm run build`, which is how `APPLICATION_MODE` reaches the build.
+  - In standalone mode `NEXT_PUBLIC_LOGIN_URL` isn't needed: `getOrganisationUrl()` (`src/config/externalLinks.ts`) falls back to `branding.links.organisation`.
+  - Sign-in is server side: the `standaloneSignIn` server action posts to `${API_BASE_URL}/api/auth/login` (`src/lib/apiClient.ts`, read at run time) and sets an httpOnly `token` cookie (`src/lib/authCookie.ts`). The cookie is `secure` when `NODE_ENV=production`, which the image sets. Chrome and Firefox treat `http://localhost` as secure, so they should keep the cookie; no browser was tested in S1, and Safari may refuse it.
+  - Every `/login` request logs `Could not load sign-in methods: … During prerendering, fetch() rejects when the prerender is complete`. The page still renders the password method, so it's log noise from the runtime prerender. The stack's probes use `/favicon.ico` to avoid it.
+  - The cookie name comes from `COOKIE_TOKEN_NAME` at run time (`src/config/internals.ts`, default `token`). The stack sets `cds_stack_token` (`web.cookieTokenName`) so it doesn't share a sign-in with a development web app on `localhost`, whose token the stack's API rejects with `Token signature mismatch`.
+  - Production also sets `SESSION_SECRET` for the web, but nothing in `src/` reads it at `v1.12.0`.
+- **NLP:** it reaches `/health/ready` 200 with every capability loaded, even when `latest_distributions` is empty.
+- **Tilt**
+  - `docker_build(..., secret=['id=github_token,env=GITHUB_TOKEN'])` works in 0.33.14, so the token never touches disk.
+  - CronJobs are Tilt workloads: each gets its own resource and can't be grouped with `objects=`.
+  - `helm()` renders Helm hook Jobs as ordinary resources.
+  - `kubectl create job --from=cronjob/…` copies Tilt's labels, so `tilt down` deletes such Jobs too.
+  - Built images are identical to plain `docker build` with the same arguments: the commands in `getting-started.md` hit the same cache.
+- **Local port clash:** a developer machine may already run the web, API and NLP dev servers on `*:3000`, `*:8100` and `*:5001`, with somop BUNNY containers polling the host's 8100. Tilt's forwards bind `127.0.0.1`, so while the stack runs, some of that traffic reaches the cluster (the API logged `GET /api/v1/task/nextjob/<uuid>` from `127.0.0.1`: "Client cannot be found").
 
 ## Prior art to reuse
 

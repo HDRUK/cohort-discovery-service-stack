@@ -1,1 +1,93 @@
-{}
+imagePullPolicy: IfNotPresent
+
+images:
+  api:
+    repository: ghcr.io/hdruk/cohort-discovery-api
+    tag: v1.17.0
+  nlp:
+    repository: ghcr.io/hdruk/cohort-discovery-nlp
+    tag: v1.9.1
+  web:
+    repository: ghcr.io/hdruk/cohort-discovery-web
+    tag: v1.12.0
+  mysql:
+    repository: mysql
+    tag: 8.4.11
+  redis:
+    repository: redis
+    tag: 7.2.13
+  curl:
+    repository: curlimages/curl
+    tag: 8.23.0
+
+mysql:
+  appDatabase: cohort_discovery
+  omopDatabase: omop
+  username: cohort_discovery
+  storageSize: 10Gi
+  storageClassName: ""
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+redis:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+api:
+  port: 8100
+  appUrl: http://localhost:8100
+  appEnv: production
+  logLevel: info
+  standaloneJwtTtlMinutes: 120
+  extraEnv: {}
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+queue:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+nlp:
+  port: 5001
+  appEnv: production
+  logLevel: INFO
+  rulesJson: ""
+  mappingsJson: ""
+  extraEnv: {}
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+web:
+  port: 3000
+  cookieTokenName: cds_stack_token
+  extraEnv: {}
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+bootstrap:
+  adminEmail: admin@example.com
+  researcherEmail: researcher@example.com
+
+scheduler:
+  enabled: true
+  serviceAccountName: scheduler
+  timeZone: Etc/UTC
+  jobs:
+    distributions-collector: "* * * * *"
+    task-cleanup-job: "* * * * *"
+    collection-no-activity-monitor: "* * * * *"
+    collection-task-backlog-monitor: "* * * * *"
+
+secrets: {}

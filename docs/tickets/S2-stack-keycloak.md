@@ -17,10 +17,10 @@ A throwaway Keycloak runs in the chart (on by default under Tilt), with a realm 
 The main pitfall is that the issuer must be the same URL for the browser and the API pod.
 
 ## Steps
-1. `keycloak.enabled` in the chart: pinned `quay.io/keycloak/keycloak`, `start-dev --import-realm`, a realm JSON from `config/keycloak/` via a ConfigMap, and `dev-file` storage on a PVC. No separate database: it's throwaway.
+1. `keycloak.enabled` in the chart: pinned `quay.io/keycloak/keycloak`, `start-dev --import-realm`, a realm JSON from `charts/cohort-discovery/files/keycloak/` via a ConfigMap, and `dev-file` storage on a PVC. No separate database: it's throwaway.
 2. Fictional users only, e.g. `admin@example.com` with `SYSTEM_ADMIN` and `researcher@example.com` with `GENERAL_ACCESS`. Their passwords come from `generated/secrets.values.yaml` (S1), never committed.
 3. Hostname. Try first: `KC_HOSTNAME=http://localhost:8080` (the Tilt port-forward) with `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`. Set the API's `SSO_DEFAULT_ISSUER` to the browser URL and `SSO_DEFAULT_DISCOVERY_URL` to the in-cluster service. Check that the API uses the discovery document's back-channel endpoints. If it doesn't, fall back to `hostAliases` on the API pod. Record what worked in `02-verified-facts.md`.
-4. Set `SSO_ENABLED`, `SSO_DEFAULT_*` and `CLAIM_SYNC_*` per D4. Keep `config/claims-mapping.json` consistent with the realm's group and role names.
+4. Set `SSO_ENABLED`, `SSO_DEFAULT_*` and `CLAIM_SYNC_*` per D4. Keep `charts/cohort-discovery/files/claims-mapping.json` consistent with the realm's group and role names.
 
 ## Done when
 - Signing in as the fictional researcher through Keycloak lands in the app with the workgroups from their groups.

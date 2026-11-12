@@ -1,0 +1,104 @@
+{{- $name := include "cohort-discovery.name" (dict "root" . "component" "api") -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "api") | nindent 4 }}
+spec:
+  selector:
+    {{- include "cohort-discovery.selectorLabels" (dict "root" . "component" "api") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.api.port }}
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "api") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "cohort-discovery.selectorLabels" (dict "root" . "component" "api") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cohort-discovery.labels" (dict "root" . "component" "api") | nindent 8 }}
+      annotations:
+        checksum/api-env: {{ include (print $.Template.BasePath "/api-env.yaml") . | sha256sum }}
+    spec:
+      initContainers:
+        {{- include "cohort-discovery.waitForBootstrap" . | nindent 8 }}
+      containers:
+        - name: api
+          image: {{ include "cohort-discovery.image" .Values.images.api }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "cohort-discovery.name" (dict "root" . "component" "api-env") }}
+          env:
+            - name: START_HORIZON
+              value: "0"
+            {{- include "cohort-discovery.apiSecretEnv" . | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.port }}
+          startupProbe:
+            httpGet:
+              path: /up
+              port: http
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /up
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /up
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cohort-discovery.name" (dict "root" . "component" "queue") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "queue") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "cohort-discovery.selectorLabels" (dict "root" . "component" "queue") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cohort-discovery.labels" (dict "root" . "component" "queue") | nindent 8 }}
+      annotations:
+        checksum/api-env: {{ include (print $.Template.BasePath "/api-env.yaml") . | sha256sum }}
+    spec:
+      initContainers:
+        {{- include "cohort-discovery.waitForBootstrap" . | nindent 8 }}
+      containers:
+        - name: horizon
+          image: {{ include "cohort-discovery.image" .Values.images.api }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command: ["php", "artisan", "horizon"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "cohort-discovery.name" (dict "root" . "component" "api-env") }}
+          env:
+            {{- include "cohort-discovery.apiSecretEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.queue.resources | nindent 12 }}
