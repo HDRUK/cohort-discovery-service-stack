@@ -31,7 +31,7 @@ The state of each repo when the plan was written. Paths are relative to `~/Softw
 
 ## API (`project-daphne-api`)
 
-- **Outsiders can't build it.** `composer.json` pulls five private VCS packages: `hdruk/claims-based-access-control`, `laravel-search-and-filter`, `laravel-plugin-core`, `laravel-workflow-states` and `laravel-messenger`. The build needs a `github_token` BuildKit secret.
+- **Building it needs a GitHub token.** `composer.json` pulls five VCS packages: `hdruk/claims-based-access-control`, `laravel-search-and-filter`, `laravel-plugin-core`, `laravel-workflow-states` and `laravel-messenger`. All five were public on 2026-11-12 (H1), but the Dockerfile still reads a `github_token` BuildKit secret unconditionally (line 74), so a build without one fails. Any GitHub token should work now that the packages are public; not tested.
 - **Dockerfile**
   - Built on `dunglas/frankenphp:php8.4`.
   - `ENV REBUILD_DB=1`, and it copies `init/php.development.ini` as `php.ini`.
@@ -86,8 +86,9 @@ The state of each repo when the plan was written. Paths are relative to `~/Softw
 - **omop-lite** loads Postgres or MSSQL only. It can't load the API's MySQL vocabulary.
   - With `SYNTHETIC=true` it loads its own bundled synthetic data, with no CSVs from somop. `AndyRae/cd-build` uses `omop-lite:0.9.4` this way, behind `hutch/bunny:1.9.9` availability (`TASK_API_TYPE=a`) and distribution (`b`) daemons.
 - **Service repos were renamed** to `HDRUK/cohort-discovery-service-{api,web,nlp}`. The `project-daphne-*` names still redirect.
+- **Visibility on 2026-11-12 (H1):** web, API, NLP, somop and the five `hdruk/*` composer packages are already public. `project-daphne-bunny-config` and this repo are private. Anything committed to the public repos, including their history, has already been published.
 - `project-daphne-bunny-config/omop/` has a MySQL Athena loader (`Dockerfile` on `mysql`, `loader.sh`), but its compose file mounts a hard-coded personal path.
-- **Committed secrets and paths:** `somop/docker-compose.multi.yaml` and `somop/out/*/docker-compose.run.yaml` contain BUNNY task API credentials and absolute `/Users/...` paths (see H1).
+- **Local secrets and paths:** `somop/docker-compose.multi.yaml` and `somop/out/*/docker-compose.run.yaml` in a local checkout contain BUNNY task API credentials and absolute `/Users/...` paths, but neither has ever been committed: `out/` is git-ignored and the multi file is generated. Committed credentials were in `docker/run-bunny.yaml` and `configs/multi_example.yaml` (H1).
 
 ## This repo (S0)
 
