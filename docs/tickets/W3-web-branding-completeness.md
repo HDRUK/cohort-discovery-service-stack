@@ -17,8 +17,8 @@ No build or run variables change (D3).
 1. Make `getCopyrightText` use `branding.copyrightHolder`, and add a test.
 2. Move the favicon and icon into `branding/assets/` and reference them from `src/app/layout.tsx` metadata. Check the bundled Next.js docs on metadata icons first.
 3. List every remaining HDR UK or Gateway string and link. Either move it into `branding.config.ts`, or confirm it only shows in integrated mode.
-4. In this repo, add `config/branding/` with a neutral default: plain name, neutral theme, generic logo, placeholder legal pages that say they must be replaced.
-5. Add the build script for D6 here: copy `web/` to a temporary context, overlay `config/branding/`, then `docker build`.
+4. **Moved to S8.** In this repo, add `config/branding/` with a neutral default: plain name, neutral theme, generic logo, placeholder legal pages that say they must be replaced.
+5. **Moved to S8.** Add the build script for D6 here: copy `web/` to a temporary context, overlay `config/branding/`, then `docker build`.
 
 ## Done when
 - Building with the neutral overlay produces no "HDR UK" text in standalone pages. Check with `grep -r "HDR UK" .next/server/app` after the build.

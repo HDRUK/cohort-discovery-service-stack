@@ -42,16 +42,22 @@ docker_build(
     'services/nlp',
 )
 
-docker_build(
+WEB_BUILD_ARGS = {
+    'APPLICATION_MODE': 'standalone',
+    'API_BASE_URL': API_HOST_URL,
+    'NEXT_PUBLIC_TASK_URL': API_HOST_URL + '/api/v1',
+    'NEXT_PUBLIC_USE_EXAMPLE_QUERY': 'false',
+    'NEXT_PUBLIC_USE_DEBUG_LOGS': 'false',
+}
+
+custom_build(
     'ghcr.io/hdruk/cohort-discovery-web',
-    'services/web',
-    build_args={
-        'APPLICATION_MODE': 'standalone',
-        'API_BASE_URL': API_HOST_URL,
-        'NEXT_PUBLIC_TASK_URL': API_HOST_URL + '/api/v1',
-        'NEXT_PUBLIC_USE_EXAMPLE_QUERY': 'false',
-        'NEXT_PUBLIC_USE_DEBUG_LOGS': 'false',
-    },
+    'scripts/build-web.sh "$EXPECTED_REF" ' + ' '.join([
+        '--build-arg %s=%s' % (name, shlex.quote(value))
+        for name, value in WEB_BUILD_ARGS.items()
+    ]),
+    deps=['services/web', 'config/branding', 'scripts/build-web.sh'],
+    ignore=['services/web/node_modules', 'services/web/.next'],
 )
 
 k8s_yaml(helm(

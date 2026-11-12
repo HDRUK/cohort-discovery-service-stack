@@ -42,27 +42,28 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [H1](tickets/H1-open-source-hygiene.md) | all | Open-source hygiene: secrets, personal paths, licence, GDPR review | – | in progress |
 | [A1](tickets/A1-api-buildable-image.md) | api | Image anyone can build: public composer packages, `.dockerignore`, production defaults | H1, D13 | todo |
 | [A2](tickets/A2-api-bootstrap-command.md) | api | Idempotent first-boot `app:bootstrap` with initial admin from env | A1 | todo |
-| [A3](tickets/A3-api-claims-mapping-file.md) | api | Claims mapping from a mounted file | D9 | todo |
-| [A4](tickets/A4-api-externally-managed-access.md) | api | Externally managed access: flag, write guard, exposed to web | A3, D8 | todo |
-| A5 | api | Stop logging request bodies (passwords reach the logs), and enforce retention on `request_audits`, `activity_log` and `nlp_query_logs`. Found in H1, see [personal data inventory](data-protection/personal-data-inventory.md) | – | todo |
+| [A3](tickets/A3-api-claims-mapping-file.md) | api | ~~Claims mapping from a mounted file~~ Not needed: D9 mounts a replacement config file instead, in S2 | D9 | not needed |
+| [A4](tickets/A4-api-externally-managed-access.md) | api | Externally managed access: flag, write guard, exposed to web | D8 | todo |
+| A5 | api | Stop logging request bodies (passwords reach the logs), and enforce retention on `request_audits`, `activity_log` and `nlp_query_logs`. Found in H1, see [personal data inventory](data-protection/personal-data-inventory.md) | – | on hold |
 | [W1](tickets/W1-web-workgroups-read-only.md) | web | Workgroups read-only when access is managed externally | A4 | todo |
-| [W2](tickets/W2-web-build-and-runtime-variables.md) | web | **Research:** build-time vs run-time variables and their knock-on effects ([findings](web-variables.md)) | – | in progress |
+| [W2](tickets/W2-web-build-and-runtime-variables.md) | web | **Research:** build-time vs run-time variables and their knock-on effects ([findings](web-variables.md)) | – | done |
 | W4 | web | Optional: task URL at run time through `ServerDefaultProvider`, falling back to `NEXT_PUBLIC_TASK_URL`, so the published image needs no rebuild at another URL. See [web-variables.md](web-variables.md#if-w4-is-done) | D7 | todo |
-| W5 | web | `Custom403.tsx` reads `APPLICATION_MODE` in the browser, where it's `undefined`, so standalone installs may send "sign in again" to the organisation site instead of `/login`. Check in a browser, then fix upstream. Found in W2 | – | todo |
-| [W3](tickets/W3-web-branding-completeness.md) | web | Branding fully overridable from `branding/`, plus a neutral default | D6 | todo |
+| W5 | web | `Custom403.tsx` reads `APPLICATION_MODE` in the browser, where it's `undefined`, so standalone installs may send "sign in again" to the organisation site instead of `/login`. Check in a browser, then fix upstream. Found in W2 | – | on hold |
+| [W3](tickets/W3-web-branding-completeness.md) | web | Close the gaps where the web ignores `branding/` (copyright text, favicons, leftover HDR UK strings). The neutral default and build script moved to S8 | D6 | on hold |
 | [N1](tickets/N1-nlp-image-and-config.md) | nlp | Publish the image, document the mounts | D2 | todo |
 | [S0](tickets/S0-stack-scaffold.md) | stack | Scaffold: submodules, chart and Tiltfile skeletons, `config/` layout | D5 | done |
 | [S1](tickets/S1-stack-helm-core.md) | stack | Helm core and Tilt: data stores, services, init, scheduler | S0 | done |
-| [S2](tickets/S2-stack-keycloak.md) | stack | Throwaway Keycloak in the chart, wired as SSO | S1, A3 | todo |
+| [S2](tickets/S2-stack-keycloak.md) | stack | Throwaway Keycloak in the chart, wired as SSO, with the claims mapping mounted (D9) | S1 | todo |
 | [S3](tickets/S3-stack-omop-vocabulary.md) | stack | OMOP vocabulary: minimal default and optional Athena import Job | S1 | todo |
 | [S4](tickets/S4-stack-provisioner.md) | stack | Provisioner: custodians, hosts and collections through the API | S1, A2 | todo |
 | [S5](tickets/S5-stack-synthetic-bunnies.md) | stack, somop | somop-backed BUNNYs, added by hand per collection | S4, D16 | todo |
 | [S6](tickets/S6-stack-non-local-installs.md) | stack | Non-local installs: ingress, external stores, example values | S1–S5 | todo |
 | [S7](tickets/S7-stack-ci-build-and-deploy.md) | stack | CI: build from any ref, push to GHCR, deploy | S1, D14 | todo |
+| [S8](tickets/S8-stack-branding-overlay.md) | stack | "Feasibility Tool" neutral branding in `config/branding/`, and the D6 build script used by Tilt | D6 | in progress |
 
 ## Suggested order
 
-- **In parallel from the start:** H1, W2, A3, N1, S0.
+- **In parallel from the start:** H1, W2, N1, S0.
 - **Then:** S1. It starts with its own init Job, so it doesn't wait for A1 and A2; it switches to `app:bootstrap` when A2 lands. S1 is the first point where the stack runs end to end.
-- **After S1:** S2 (needs A3), S3, S4 → S5, and A4 → W1.
+- **After S1:** S2, S3, S4 → S5, S8, and A4 → W1.
 - **Last:** S6 and S7.

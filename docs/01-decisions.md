@@ -39,11 +39,20 @@ Agreed 2026-11-11. Production uses Cloud Scheduler to call `POST /api/v1/service
 ### D17. Config files live in the chart
 Agreed 2026-11-11. Helm's `.Files` can only read inside the chart, so the files the chart consumes (NLP rules and mappings, the Keycloak realm, the claims mapping, `provision.json`, somop configs) are defaults under `charts/cohort-discovery/files/`, each overridable through values. `helm install` needs no extra flags. `config/branding/` stays at the repo root, because it's a web build input, not something the chart reads.
 
-## Open
-
 ### D6. How a deployer overrides web branding
-**Recommendation:** the stack's build script copies a `config/branding/` overlay over the submodule's `branding/` in a temporary build context, then runs the web's existing Dockerfile. The web Dockerfile and variables don't change (D3), and HDR UK's pipeline isn't affected.
-The alternative, a BuildKit named context (`--build-context branding=…`), needs a Dockerfile change that HDR UK's build would also have to accommodate.
+Agreed 2026-11-12. `scripts/build-web.sh` copies the web submodule into a temporary build context, copies `config/branding/` over its `branding/`, then runs the web's own Dockerfile. Files missing from the overlay fall back to the submodule's. The web Dockerfile and variables don't change (D3), and HDR UK's pipeline isn't affected. Tilt builds the web through the same script. The gaps where the web ignores `branding/` (W3) are on hold and get fixed upstream later; the overlay picks up those fixes without changing.
+
+### D9. How a deployer supplies the claims mapping
+Agreed 2026-11-12. A whole replacement `config/claimsaccesscontrol.php`, mounted by the chart over `/var/www/config/claimsaccesscontrol.php` in the API containers. It's a plain Laravel config file, and `start.sh` runs `config:cache` at start, so the mounted file is what the API uses. The API doesn't change, so A3 isn't needed. The default copy is `charts/cohort-discovery/files/api/claimsaccesscontrol.php`, overridable through values (D17).
+Points to keep in mind:
+- The file replaces the whole config, including the `sync` section that reads `CLAIM_SYNC_*`. A deployer's copy must keep those `env()` calls, or the env settings stop working.
+- It's a copy of upstream. When the API submodule's pin moves, diff it against the new `config/claimsaccesscontrol.php`.
+- It's PHP, so it runs in the API. Only the deployer supplies it, the same as the image.
+
+### D13. Licence
+Agreed 2026-11-12: MIT, matching everything already published (the services, somop and the five `hdruk/*` packages). This repo and `project-daphne-bunny-config` will be MIT, and the four packages without a `LICENSE` file can have one added. No action is needed now.
+
+## Open
 
 ### D7. What the published web image is
 **Recommendation:** one generic standalone image with neutral branding (W3), built with `NEXT_PUBLIC_*` values for `http://localhost:3000`. Changing URLs or branding means rebuilding through the stack's build script.
@@ -51,14 +60,6 @@ The alternative, a BuildKit named context (`--build-context branding=…`), need
 
 ### D8. Where "access managed externally" is enforced
 **Recommendation:** in the API. It derives a flag from the claim-sync policy (workgroups, roles and custodians synced `always` and authoritative), rejects writes to them with 403, and exposes the flag to the web. The web only hides controls (W1). A web-only gate isn't a security boundary.
-
-### D9. Format of the runtime claims mapping
-**Recommendation:** a JSON file at `CLAIMS_MAPPING_PATH`, with the same shape as the `workgroup_mappings` and `role_mappings` arrays in `config/claimsaccesscontrol.php`. It's read when the config loads, so it is in place before `config:cache` in `start.sh`. When the variable is unset, the PHP defaults apply. JSON avoids a YAML dependency.
-
-### D13. Licence
-Which licence the stack and the three service repos are released under. It has to be settled before A1 makes the `hdruk/*` composer packages public. Not a technical decision: it needs whoever owns open-sourcing at HDR UK.
-**Found 2026-11-12 (H1):** the services, somop and all five `hdruk/*` packages are already public, and all of them are MIT. Web, API, NLP, somop and `claims-based-access-control` have an MIT `LICENSE` file. `laravel-search-and-filter`, `laravel-plugin-core`, `laravel-workflow-states` and `laravel-messenger` declare `"license": "MIT"` in `composer.json` but have no `LICENSE` file. `project-daphne-bunny-config` and this repo are private, with no licence. A1's "make the packages public" step is already done.
-**Recommendation:** MIT for this repo and bunny-config, to match what's already published, and add the missing `LICENSE` files to the four packages. Still needs the open-sourcing owner's sign-off.
 
 ### D14. Where CI deploys a custom-built stack
 Options:

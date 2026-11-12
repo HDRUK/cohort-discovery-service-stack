@@ -1,6 +1,6 @@
 # S2. Stack: Keycloak
 
-**Repo:** this one · **Depends on:** S1, A3 · **Decisions:** D4, D12
+**Repo:** this one · **Depends on:** S1 · **Decisions:** D4, D9, D12
 
 ## Goal
 A throwaway Keycloak runs in the chart (on by default under Tilt), with a realm imported on start, wired as the API's `default` SSO provider. Signing in through it syncs workgroups and roles from claims.
@@ -26,7 +26,8 @@ The main pitfall is that the issuer must be the same URL for the browser and the
    - Pin `SSO_DEFAULT_REDIRECT_URI` to match the realm's redirect URI, and shorten `SSO_DISCOVERY_CACHE_TTL_SECONDS` and `SSO_JWKS_CACHE_TTL_SECONDS` (default 3600) so a Keycloak restart with new keys doesn't break sign-in.
 
    Record what worked in `02-verified-facts.md`.
-4. Set `SSO_ENABLED`, `SSO_DEFAULT_*` and `CLAIM_SYNC_*` per D4. Keep `charts/cohort-discovery/files/claims-mapping.json` consistent with the realm's group and role names.
+4. Set `SSO_ENABLED`, `SSO_DEFAULT_*` and `CLAIM_SYNC_*` per D4.
+5. Claims mapping (D9): copy the API's `config/claimsaccesscontrol.php` at the pinned tag to `charts/cohort-discovery/files/api/claimsaccesscontrol.php`, keep its mappings consistent with the realm's group and role names, and mount it from a ConfigMap over `/var/www/config/claimsaccesscontrol.php` (`subPath`) in every API container: the API, the queue worker, the init Job and the scheduler if it runs PHP. Let values replace the file's content (D17). Check with `php artisan tinker --execute="dump(config('claimsaccesscontrol.workgroup_mappings'))"` in the pod.
 
 ## Done when
 - Signing in as the fictional researcher through Keycloak lands in the app with the workgroups from their groups.
