@@ -170,7 +170,7 @@ The web is branded at build time, so changing the branding means rebuilding the 
 |---|---|
 | `branding.config.ts` | Product name, sign-in page text, organisation name and link, legal page titles |
 | `theme.ts` | Colours and font, merged over the web's base theme. Set `primary` and `secondary`, or the web's own defaults show through |
-| `assets/logo.svg` | The header logo, shown on the dark header at 30px high |
+| `assets/logo.svg` | The header logo, shown on the `secondary` colour at 30px high, so it needs light artwork |
 | `legal/termsAndConditions.mdx`, `legal/privacyPolicy.mdx` | Placeholders that say they must be replaced before anyone signs in |
 
 `scripts/build-web.sh <image> [docker build options]` copies `services/web` to a temporary folder, copies `config/branding/` over its `branding/`, and runs the web's own Dockerfile (D6). Any file you leave out of `config/branding/` falls back to the web's own. Tilt rebuilds the web when anything in `config/branding/` changes.
