@@ -21,6 +21,7 @@
 | [02-verified-facts.md](02-verified-facts.md) | The current state of each repo, checked 2026-11-11 |
 | [tickets/](tickets/) | One plan per ticket, written so an agent can start from that file plus `02-verified-facts.md` |
 | [alternatives/](alternatives/) | Other ways to run the service, such as [Docker Compose](alternatives/docker-compose.md) |
+| [data-protection/](data-protection/) | What the service holds about people, for data protection review ([inventory](data-protection/personal-data-inventory.md)) |
 
 ## How to pick up a ticket
 
@@ -37,11 +38,12 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 
 | ID | Repo | Ticket | Depends on | Status |
 |---|---|---|---|---|
-| [H1](tickets/H1-open-source-hygiene.md) | all | Open-source hygiene: secrets, personal paths, licence, GDPR review | – | todo |
+| [H1](tickets/H1-open-source-hygiene.md) | all | Open-source hygiene: secrets, personal paths, licence, GDPR review | – | in progress |
 | [A1](tickets/A1-api-buildable-image.md) | api | Image anyone can build: public composer packages, `.dockerignore`, production defaults | H1, D13 | todo |
 | [A2](tickets/A2-api-bootstrap-command.md) | api | Idempotent first-boot `app:bootstrap` with initial admin from env | A1 | todo |
 | [A3](tickets/A3-api-claims-mapping-file.md) | api | Claims mapping from a mounted file | D9 | todo |
 | [A4](tickets/A4-api-externally-managed-access.md) | api | Externally managed access: flag, write guard, exposed to web | A3, D8 | todo |
+| A5 | api | Stop logging request bodies (passwords reach the logs), and enforce retention on `request_audits`, `activity_log` and `nlp_query_logs`. Found in H1, see [personal data inventory](data-protection/personal-data-inventory.md) | – | todo |
 | [W1](tickets/W1-web-workgroups-read-only.md) | web | Workgroups read-only when access is managed externally | A4 | todo |
 | [W2](tickets/W2-web-build-and-runtime-variables.md) | web | **Research:** build-time vs run-time variables and their knock-on effects | – | todo |
 | [W3](tickets/W3-web-branding-completeness.md) | web | Branding fully overridable from `branding/`, plus a neutral default | D6 | todo |

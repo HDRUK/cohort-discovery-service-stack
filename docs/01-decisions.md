@@ -56,6 +56,8 @@ The alternative, a BuildKit named context (`--build-context branding=…`), need
 
 ### D13. Licence
 Which licence the stack and the three service repos are released under. It has to be settled before A1 makes the `hdruk/*` composer packages public. Not a technical decision: it needs whoever owns open-sourcing at HDR UK.
+**Found 2026-11-12 (H1):** the services, somop and all five `hdruk/*` packages are already public, and all of them are MIT. Web, API, NLP, somop and `claims-based-access-control` have an MIT `LICENSE` file. `laravel-search-and-filter`, `laravel-plugin-core`, `laravel-workflow-states` and `laravel-messenger` declare `"license": "MIT"` in `composer.json` but have no `LICENSE` file. `project-daphne-bunny-config` and this repo are private, with no licence. A1's "make the packages public" step is already done.
+**Recommendation:** MIT for this repo and bunny-config, to match what's already published, and add the missing `LICENSE` files to the four packages. Still needs the open-sourcing owner's sign-off.
 
 ### D14. Where CI deploys a custom-built stack
 Options:
