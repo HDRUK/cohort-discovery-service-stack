@@ -11,7 +11,7 @@
 - Until A2's `app:bootstrap` exists, the init Job runs those commands itself, plus Passport keys and the personal access client. Swap to `app:bootstrap` when A2 lands.
 - The API image needs a GitHub token to build (private composer packages, until A1). Tilt passes it as a BuildKit secret from the environment (e.g. `GITHUB_TOKEN=$(gh auth token)`). It is never written to disk or into values.
 - Start order: MySQL and Redis, then the init Job, then NLP and API, then web.
-- Helm's `.Files` can only read inside the chart directory, so `config/` at the repo root can't be loaded by the chart directly. Decide between: the ConfigMap contents as values, passed with `--set-file` (by Tilt and by `helm install` users); or the defaults moved to `charts/cohort-discovery/files/`, with values to override them. Ask before choosing, and update the layout in `CLAUDE.md` to match.
+- Config files the chart reads live in `charts/cohort-discovery/files/`, overridable through values (D17). Move `config/nlp/` there, and `config/keycloak/` and `config/synthetic/` placeholders with it. Update the layout in `CLAUDE.md`, `docs/getting-started.md` and the S0 ticket to match.
 - S0's Tiltfile skips `k8s_yaml` while the chart renders nothing. Remove that guard once the chart has resources.
 
 ## In the chart
@@ -23,7 +23,7 @@
 | api | Deployment | `APP_OPERATION_MODE=standalone`, `REBUILD_DB=0`. Passport keys from the Secret. |
 | queue | Deployment | Horizon or `queue:work`, whichever `start.sh` allows without changing it. |
 | scheduler | CronJobs | Call `/api/v1/services/caller/*` with the bootstrap service account (D15). Intervals from `cohort-discovery-infrastructure`'s Cloud Scheduler config. |
-| nlp | Deployment | `DB_NAME` set to the app DB, `OMOP_DB_NAME` to `omop`. `config/nlp/` mounted from a ConfigMap. Readiness on `/health/ready`. |
+| nlp | Deployment | `DB_NAME` set to the app DB, `OMOP_DB_NAME` to `omop`. `files/nlp/` mounted from a ConfigMap. Readiness on `/health/ready`. |
 | web | Deployment | Built from `services/web` by Tilt. `API_BASE_URL` is the in-cluster API service. |
 
 ## Secrets
