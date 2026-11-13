@@ -56,6 +56,10 @@ keycloak_section() {
   keycloak_theme_files
 }
 
+provision_section() {
+  block_value "  " json provision.json
+}
+
 mkdir -p "$(dirname "${output_file}")"
 work_file="$(mktemp "${output_file}.XXXXXX")"
 trap 'rm -f "${work_file}"' EXIT
@@ -65,6 +69,7 @@ trap 'rm -f "${work_file}"' EXIT
   section api api_section
   section nlp nlp_section
   section keycloak keycloak_section
+  section provision provision_section
 } > "${work_file}"
 
 mv "${work_file}" "${output_file}"

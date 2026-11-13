@@ -21,7 +21,7 @@ HDR UK's own dev, preprod and prod deployments are separate and must keep workin
 
 ## Status
 
-Planning, S0 (scaffold), S1 (Helm core and Tilt) and S8 (branding) are done; S2 (Keycloak) is in review. The plan is in `docs/`:
+Planning, S0 (scaffold), S1 (Helm core and Tilt), S4 (provisioner) and S8 (branding) are done; S2 (Keycloak) is in review. The plan is in `docs/`:
 
 | File | What |
 |---|---|
@@ -51,10 +51,10 @@ The layout:
 ```
 services/{web,api,nlp}/   git submodules pinned to release tags (D5)
 charts/cohort-discovery/  Helm umbrella chart: the one definition of the stack (D12)
-  files/                  the chart's own scripts: api-init/, synthetic/
+  files/                  the chart's own scripts: api-init/, provision/, synthetic/
 customisations/           everything a deployer changes, one folder per service (D21):
                           api/claimsaccesscontrol.php, keycloak/realm.json, nlp/,
-                          web/branding/ (a web build input, D6), later provision.json
+                          web/branding/ (a web build input, D6), provision.json (S4)
 scripts/                  local-secrets.sh, customisations-values.sh, build-web.sh (D6)
 Tiltfile                  local development on Rancher Desktop, kind or k3s
 generated/                git-ignored: local secrets, customisations values file

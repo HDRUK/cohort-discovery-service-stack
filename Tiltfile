@@ -31,7 +31,7 @@ if not os.getenv('GITHUB_TOKEN', ''):
 
 local('scripts/local-secrets.sh', quiet=True)
 local('scripts/customisations-values.sh', quiet=True)
-for path in CHART_CUSTOMISATIONS + ['customisations/web/branding/assets/logo.svg', 'customisations/web/branding/assets/icon.svg', 'scripts/customisations-values.sh']:
+for path in CHART_CUSTOMISATIONS + ['customisations/web/branding/assets/logo.svg', 'customisations/web/branding/assets/icon.svg', 'customisations/provision.json', 'scripts/customisations-values.sh']:
     watch_file(path)
 local(
     'kubectl --context "$CONTEXT" create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl --context "$CONTEXT" apply -f -',
@@ -77,6 +77,7 @@ k8s_yaml(helm(
         'api.appUrl=' + API_HOST_URL,
         'web.appUrl=' + WEB_HOST_URL,
         'keycloak.enabled=' + str(KEYCLOAK_ENABLED).lower(),
+        'provision.enabled=' + str(KEYCLOAK_ENABLED).lower(),
         'keycloak.port=' + KEYCLOAK_HOST_PORT,
     ],
 ))
@@ -96,6 +97,13 @@ k8s_resource(
     labels=['init'],
     resource_deps=['mysql', 'redis'],
 )
+if KEYCLOAK_ENABLED and os.path.exists('customisations/provision.json'):
+    k8s_resource(
+        'cohort-discovery-provision',
+        new_name='provision',
+        labels=['init'],
+        resource_deps=['api', 'keycloak'],
+    )
 k8s_resource(
     'cohort-discovery-api',
     new_name='api',

@@ -239,6 +239,41 @@ If you forward the API or the web to other host ports, set `api.appUrl` and `web
 
 The Passport keys come from the Secret through `PASSPORT_PRIVATE_KEY` and `PASSPORT_PUBLIC_KEY`, so tokens survive pod restarts. A2's `app:bootstrap` will replace the script.
 
+## Collections: the provision Job
+
+`provision` creates the custodians, collection hosts and collections in `customisations/provision.json` through the API, shares each collection with its `workgroups` and makes it active, so a researcher in one of those workgroups sees it straight away. It runs after the API and Keycloak are up, as a Helm `post-install`/`post-upgrade` hook, and under Tilt again whenever the file changes. It signs in as `bootstrap.adminEmail` through Keycloak (D22), so it's off when Keycloak is.
+
+```json
+{
+  "custodians": [
+    {
+      "name": "Demo Custodian",
+      "hosts": [
+        {
+          "name": "Synthetic Host",
+          "collections": [
+            {
+              "name": "Synthetic Collection A",
+              "description": "Synthetic OMOP data for trying the service.",
+              "synthetic": true,
+              "workgroups": ["UK-RESEARCH", "UK-INDUSTRY"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Records are matched by name, so running it again changes nothing. It never deletes or renames anything, and never removes a workgroup from a collection. A workgroup that doesn't exist (see `customisations/api/workgroups.php`) stops the run before anything is created.
+
+For each host it writes a Secret `bunny-<host>` with the BUNNY's `TASK_API_BASE_URL`, `TASK_API_USERNAME` and `TASK_API_PASSWORD`, and a `collection-<collection>` key holding each collection's ID. The API shows a host's credentials only once, when it's created, so the Secret is the only copy: if the host exists and its Secret doesn't, the Job stops and asks you to delete the host in the app or restore the Secret. To see what it did:
+
+```bash
+kubectl -n cohort-discovery logs job/cohort-discovery-provision
+```
+
 ## Scheduled jobs
 
 Four CronJobs call `POST /api/v1/services/caller/{command}` every minute with the scheduler service account, as production's Cloud Scheduler does: `distributions-collector`, `task-cleanup-job`, `collection-no-activity-monitor` and `collection-task-backlog-monitor`. Change the schedules under `scheduler.jobs`, or turn them off with `scheduler.enabled=false`. To run one now:
@@ -253,12 +288,13 @@ kubectl -n cohort-discovery logs job/task-cleanup-now
 | Value | What |
 |---|---|
 | `images.*` | Image repositories and pinned tags |
-| `bootstrap.adminEmail`, `bootstrap.custodianName` | The seeded admin (password sign-in only) and custodian, used only when `users` is empty |
+| `bootstrap.adminEmail`, `bootstrap.custodianName` | The seeded admin and custodian, used only when `users` is empty. The admin signs in through Keycloak, so it must also be in `keycloak.users` |
 | `api.appUrl`, `web.appUrl` | The API and web URLs as the browser sees them; SSO redirects are built from them |
 | `keycloak.enabled`, `keycloak.port` | Keycloak and SSO on or off, and its port (inside the cluster and on the host) |
 | `keycloak.groups`, `keycloak.roles`, `keycloak.users` | The realm's groups, realm roles and users; passwords are named by `passwordKey` and live in the secrets file |
-| `keycloak.realmJson`, `api.claimsAccessControlPhp`, `nlp.rulesJson`, `nlp.mappingsJson` | Set only by `generated/customisations.values.yaml`, from `customisations/` (see [Customisations](#customisations)) |
+| `keycloak.realmJson`, `api.claimsAccessControlPhp`, `nlp.rulesJson`, `nlp.mappingsJson`, `provision.json` | Set only by `generated/customisations.values.yaml`, from `customisations/` (see [Customisations](#customisations)) |
 | `api.extraEnv`, `nlp.extraEnv`, `web.extraEnv` | Extra non-secret environment variables |
+| `provision.enabled` | The provision Job on or off; it's off when `provision.json` isn't supplied |
 | `scheduler.*` | Scheduled jobs |
 | `secrets.*` | Set only by `generated/secrets.values.yaml`; never in `values.yaml` |
 
@@ -274,11 +310,12 @@ Everything a deployer is expected to change lives in `customisations/`, one fold
 | `customisations/keycloak/realm.json` | The Keycloak realm's client and settings | Imported by Keycloak, with the groups, roles and users from the values |
 | `customisations/keycloak/theme/` | The Keycloak sign-in page's look (see [Keycloak sign-in page](#keycloak-sign-in-page)) | Mounted into Keycloak as the `cohort-discovery` theme |
 | `customisations/nlp/rules.json`, `mappings.json` | The NLP rules and mappings | Mounted into the NLP |
+| `customisations/provision.json` | Custodians, hosts and collections, and the workgroups each collection is shared with (see [Collections](#collections-the-provision-job)) | Created through the API by the provision Job |
 | `customisations/web/branding/` | The web's branding (see [Branding](#branding)) | Built into the web image |
 
-Helm can only read files inside the chart, so `scripts/customisations-values.sh` copies the `api`, `keycloak` and `nlp` files into `generated/customisations.values.yaml` (as `api.authPhp`, `api.claimsAccessControlPhp`, `api.workgroupsPhp`, `keycloak.realmJson`, `keycloak.themeFiles`, `nlp.rulesJson` and `nlp.mappingsJson`), which is passed to Helm with `-f`. Tilt runs it on every start and when those folders change. The branding is used when the web image is built, not by the chart.
+Helm can only read files inside the chart, so `scripts/customisations-values.sh` copies the `api`, `keycloak` and `nlp` files and `provision.json` into `generated/customisations.values.yaml` (as `api.authPhp`, `api.claimsAccessControlPhp`, `api.workgroupsPhp`, `keycloak.realmJson`, `keycloak.themeFiles`, `nlp.rulesJson`, `nlp.mappingsJson` and `provision.json`), which is passed to Helm with `-f`. Tilt runs it on every start and when those folders change. The branding is used when the web image is built, not by the chart.
 
-You can delete files you don't want to change. Without an NLP file, nothing is mounted and the NLP uses its own copy, which is identical at the pinned tag. Without the claims mapping, the API uses its own copy, which syncs workgroups only on first sign-in and never removes them, so Keycloak is no longer the source of truth for access. Without `workgroups.php`, the API seeds its own nine workgroups. Without `auth.php`, password sign-in is back on. Keycloak has no default, so the chart fails with a message if it's on and there's no realm. To keep your customisations somewhere else, pass that folder: `scripts/customisations-values.sh <folder>`.
+You can delete files you don't want to change. Without an NLP file, nothing is mounted and the NLP uses its own copy, which is identical at the pinned tag. Without the claims mapping, the API uses its own copy, which syncs workgroups only on first sign-in and never removes them, so Keycloak is no longer the source of truth for access. Without `workgroups.php`, the API seeds its own nine workgroups. Without `auth.php`, password sign-in is back on. Without `provision.json`, no collections are created. Keycloak has no default, so the chart fails with a message if it's on and there's no realm. To keep your customisations somewhere else, pass that folder: `scripts/customisations-values.sh <folder>`.
 
 ## Branding
 

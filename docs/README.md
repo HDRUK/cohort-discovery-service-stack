@@ -2,7 +2,7 @@
 
 > **AI disclosure:** Drafted with Claude Code on 2026-11-11 from a read of `project-daphne-web`, `project-daphne-api`, `project-daphne-nlp`, `somop`, `project-daphne-bunny-config`, `cohort-discovery-service-evaluator` and `cohort-discovery-service-docs`.
 
-**Status:** plan written. Decisions D1–D6, D9–D13, D15, D17, D20 and D21 are agreed; the rest are open. S0, S1 and S8 are done; S2 is in review.
+**Status:** plan written. Decisions D1–D6, D9–D13, D15–D17 and D20–D22 are agreed; the rest are open. S0, S1, S4 and S8 are done; S2 is in review.
 
 ## Aims
 
@@ -48,6 +48,7 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [A6](tickets/A6-api-sso-custodian-provisioning.md) | api | Create custodians from SSO claims, behind a setting, as integrated mode already does. Found in S2 | – | todo |
 | [A7](tickets/A7-api-missing-claim-authoritative.md) | api | Under an authoritative sync, treat a missing groups claim as empty, so removing a user's last group removes their workgroups (D20). Found in S2 | – | todo |
 | [A8](tickets/A8-api-many-to-one-claim-mapping.md) | api | Map several IdP groups or roles to one workgroup or role, e.g. `ukri`, `breathe` and `ncs` to `UK-RESEARCH`. Found in S2. Done on branch `feat/DP-1254-many-to-one-claim-mapping`, which also adds `config/workgroups.php`; the stack is pinned to it | – | in review (DP-1254) |
+| [A9](tickets/A9-api-collection-workgroup-authorisation.md) | api | Authorise adding and removing a collection's workgroups; today any signed-in user can. Found in S4, may be DP-354 | – | todo |
 | [W1](tickets/W1-web-workgroups-read-only.md) | web | Workgroups read-only when access is managed externally | A4 | todo |
 | [W2](tickets/W2-web-build-and-runtime-variables.md) | web | **Research:** build-time vs run-time variables and their knock-on effects ([findings](web-variables.md)) | – | done |
 | W4 | web | Optional: task URL at run time through `ServerDefaultProvider`, falling back to `NEXT_PUBLIC_TASK_URL`, so the published image needs no rebuild at another URL. See [web-variables.md](web-variables.md#if-w4-is-done) | D7 | todo |
@@ -58,8 +59,8 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [S1](tickets/S1-stack-helm-core.md) | stack | Helm core and Tilt: data stores, services, init, scheduler | S0 | done |
 | [S2](tickets/S2-stack-keycloak.md) | stack | Throwaway Keycloak in the chart, wired as SSO, with the claims mapping mounted (D9) | S1 | in review |
 | [S3](tickets/S3-stack-omop-vocabulary.md) | stack | OMOP vocabulary: minimal default and optional Athena import Job | S1 | todo |
-| [S4](tickets/S4-stack-provisioner.md) | stack | Provisioner: custodians, hosts and collections through the API | S1, A2 | todo |
-| [S5](tickets/S5-stack-synthetic-bunnies.md) | stack, somop | somop-backed BUNNYs, added by hand per collection | S4, D16 | todo |
+| [S4](tickets/S4-stack-provisioner.md) | stack | Provisioner: custodians, hosts and collections through the API, shared with workgroups and made active | S1, S2, D22 | done |
+| [S5](tickets/S5-stack-synthetic-bunnies.md) | stack | A synthetic database and BUNNY for each synthetic collection in `provision.json`, set up automatically | S4, D16 | todo |
 | [S6](tickets/S6-stack-non-local-installs.md) | stack | Non-local installs: ingress, external stores, example values | S1–S5 | todo |
 | [S7](tickets/S7-stack-ci-build-and-deploy.md) | stack | CI: build from any ref, push to GHCR, deploy | S1, D14 | todo |
 | [S8](tickets/S8-stack-branding-overlay.md) | stack | "Feasibility Tool" neutral branding in `config/branding/`, and the D6 build script used by Tilt | D6 | done |

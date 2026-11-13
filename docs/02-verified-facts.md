@@ -164,6 +164,20 @@ Checked against api `v1.17.0`, web `v1.12.0` and `quay.io/keycloak/keycloak:26.8
   - In the API's claim mapping, the `custodian` group maps to the `CUSTODIAN` workgroup and the `CUSTODIAN` role to `custodian` (`customisations/api/claimsaccesscontrol.php`, byte-identical to the API's own at `v1.17.0`). Since 2026-11-13 the stack's copy hard-codes its settings and uses different Keycloak names (`ukri`, `gsk`, `bbmri`, `nhs-wales`; roles `researcher`, `platform-admin`, `data-custodian`) to show the mapping.
 - **Activity log** gains `sso` entries (`sso_login`, `sso_claims_mapped` with attached and detached IDs, logout with `had_id_token_hint`).
 
+## Learnt provisioning (S4, 2026-11-13)
+
+Checked against api `b257363` and Keycloak 26.8.2 on Rancher Desktop.
+
+- **Visibility.** A non-admin sees a collection only when it's in one of their workgroups **and** in state `active`, or when it belongs to one of their custodians (`Collection::scopeVisibleToUser`). New collections start in `draft`; `draft` → `active` is allowed directly, with no `pending` step.
+- **Endpoints the provisioner uses**, all under `decode.jwt`: `GET /v1/workgroups` and `GET /v1/custodians` (plain lists, not paginated); `GET /v1/custodians/{pid}/collection_hosts` (each host with its `collections`); `POST /v1/custodians`, `POST /v1/collection_hosts`, `POST /v1/custodians/{pid}/collections` (`description` is required, `type` is `bunny` or `beacon`); `GET /v1/collections/{id}` (with `model_state.state.slug` and `workgroups`); `POST /v1/collections/{id}/workgroup`; `PUT /v1/collections/{id}/transition_to` with `{"state": "active"}`. Every response is `{"message": "success", "data": …}`, `POST /api/auth/sso/exchange` included: the token is `data.access_token`, though its docblock shows it unwrapped.
+- **Every read writes an activity entry** (`viewed`), so a provisioning run that changes nothing still adds rows to `activity_log`, and its SSO sign-in adds `sso_login` entries for the admin.
+- **`addToWorkgroup` and `removeFromWorkgroup` have no authorisation check**, and their route group has `cbac:admin` commented out (DP-354). Any signed-in user can share a collection with any workgroup. Ticket A9.
+- **Activating a collection** calls `SlackNotifier`, which logs `no webhook URL configured` and sends nothing in the stack.
+- **Scripted Keycloak sign-in.** Keycloak sets `AUTH_SESSION_ID`, `KC_AUTH_SESSION_HASH` and `KC_RESTART` with `Secure; SameSite=None` even over `http://localhost`. Browsers and curl send them back to `localhost`; Python's `http.cookiejar` doesn't, and Keycloak then answers the login POST with 400 (`cookie_not_found`). The provisioner's cookie policy treats `localhost` as secure, as browsers do. The login form is `form#kc-form-login` with `username` and `password`.
+- **Reaching browser URLs from a Job** needs no socat sidecar: the provisioner maps `localhost:<port>` to the Services when it resolves names, so the `Host` header stays the browser's.
+- **Adding a user to `keycloak.users` doesn't reach a running Keycloak**: the realm is imported only when it doesn't exist. Delete the realm (or the Keycloak PVC) and restart Keycloak to pick it up.
+- **Host credentials** written by the provisioner pass `CollectionHostBasicAuth`: `GET /api/v1/task/nextjob/{collection pid}` returns 204 with them and 401 without. `TASK_API_BASE_URL` is `http://<api service>:<port>/api/v1`.
+
 ## Prior art to reuse
 
 - `cohort-discovery-service-evaluator/compose.yaml`: mysql (with `init/mysql/01-omop.sql`), `api-init` (`init/api-init.sh`), nlp and api in standalone mode, with mounted Passport keys. It has no web and no Keycloak.

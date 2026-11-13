@@ -74,6 +74,14 @@ Agreed 2026-11-12, during S2. Every file a deployer is expected to change sits u
 - `keycloak.realmJson` is now always the base realm, with the values' groups, roles and users set on it. It's no longer used verbatim.
 - The rendered chart is byte-identical to before when the customisations are passed.
 
+### D16. How BUNNYs are added to a running stack
+Agreed 2026-11-13: automatically, from `customisations/provision.json`, with omop-lite's bundled synthetic data. This replaces the earlier plan of adding a BUNNY by hand per collection.
+- Each collection marked `"synthetic": true` gets its own database in one shared `postgres:16`, loaded by omop-lite with `SYNTHETIC=true`, and a pinned `hutch/bunny` Deployment whose credentials and `COLLECTION_ID` come from the Secret S4 writes. The chart owns every container; somop's own `docker compose` isn't used.
+- Every synthetic collection returns the same counts. somop can be added later for distinct data per collection; it needs a Dockerfile in `somop` first.
+
+### D22. How the provisioner authenticates
+Agreed 2026-11-13, during S4. The host, collection and workgroup endpoints need a signed-in user's JWT, service accounts only reach `/api/v1/services/caller/*`, and password sign-in is off (D9, `customisations/api/auth.php`). So the provisioner signs in as `bootstrap.adminEmail` through Keycloak the way a browser does: the API's SSO redirect, Keycloak's login form, the API's callback, then `POST /api/auth/sso/exchange`. It needs no API change and uses the same path as everyone else, at the cost of depending on Keycloak's login form (`#kc-form-login`). Rejected: PHP in an API container (skips the API's validation and couples to its models), turning password sign-in back on, and an API ticket for service-account access (blocks S4).
+
 ## Open
 
 ### D7. What the published web image is
@@ -90,11 +98,6 @@ Options:
 - a VM running Compose.
 
 **Recommendation:** an existing namespace through Helm, because it matches how `dev-standalone` is deployed today. That means S7 can't deploy until S6 is done. Until then it builds and pushes only.
-
-### D16. How BUNNYs are added to a running stack
-The user wants BUNNYs added by hand once the core is up and collections are provisioned, "via somop or something more custom".
-**Recommendation:** a manual Tilt resource (and a plain script for non-Tilt installs) per collection. It runs `somop generate` as a Job, loads the result into a shared `postgres:16` with omop-lite, and installs a BUNNY Deployment that reads the host's credentials from the Kubernetes Secret S4 wrote. This uses somop for data only and lets the chart own every container, instead of somop's own `docker compose`.
-**Alternative found 2026-11-12:** omop-lite's `SYNTHETIC=true` loads bundled synthetic data without somop (`AndyRae/cd-build` does this). That removes the somop Dockerfile and the generate Job, but gives every collection the same data. Decide whether distinct data per collection is worth the somop step.
 
 ### D18. Which Redis the stack runs
 Found during S1. Redis 7.4 and later aren't under an OSI licence: 7.4 is RSALv2/SSPL, and 8.x adds AGPL. 7.2 is the last BSD-licensed line. The API only needs a Redis-protocol server for its queue, cache and sessions.

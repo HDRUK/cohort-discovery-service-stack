@@ -1,0 +1,26 @@
+{
+  "custodians": [
+    {
+      "name": "Demo Custodian",
+      "hosts": [
+        {
+          "name": "Synthetic Host",
+          "collections": [
+            {
+              "name": "Synthetic Collection A",
+              "description": "Synthetic OMOP data for trying the service. It describes no real people.",
+              "synthetic": true,
+              "workgroups": ["UK-RESEARCH", "UK-INDUSTRY"]
+            },
+            {
+              "name": "Synthetic Collection B",
+              "description": "Synthetic OMOP data for trying the service. It describes no real people.",
+              "synthetic": true,
+              "workgroups": ["UK-RESEARCH"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

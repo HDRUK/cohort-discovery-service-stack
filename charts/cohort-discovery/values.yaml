@@ -25,6 +25,9 @@ images:
   socat:
     repository: alpine/socat
     tag: 1.8.1.3
+  python:
+    repository: python
+    tag: 3.13.17-alpine3.24
 
 mysql:
   appDatabase: cohort_discovery
@@ -147,6 +150,10 @@ socat:
 bootstrap:
   adminEmail: admin@example.com
   custodianName: Demo Custodian
+
+provision:
+  enabled: true
+  json: ""
 
 scheduler:
   enabled: true

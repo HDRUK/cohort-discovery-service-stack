@@ -1,0 +1,125 @@
+{{- if and .Values.provision.enabled .Values.provision.json }}
+{{- if not .Values.keycloak.enabled }}
+{{- fail "provision signs in as bootstrap.adminEmail through Keycloak, so it needs keycloak.enabled, or set provision.enabled=false" }}
+{{- end }}
+{{- $name := include "cohort-discovery.name" (dict "root" . "component" "provision") -}}
+{{- $api := include "cohort-discovery.name" (dict "root" . "component" "api") -}}
+{{- $keycloak := include "cohort-discovery.name" (dict "root" . "component" "keycloak") -}}
+{{- $admin := dict -}}
+{{- range .Values.keycloak.users }}
+{{- if eq (lower .email) (lower $.Values.bootstrap.adminEmail) }}{{ $admin = . }}{{ end }}
+{{- end }}
+{{- if not $admin }}
+{{- fail (printf "provision signs in as bootstrap.adminEmail (%s), which isn't in keycloak.users" .Values.bootstrap.adminEmail) }}
+{{- end }}
+{{- $apiInCluster := printf "%s:%v" $api .Values.api.port -}}
+{{- $keycloakInCluster := printf "%s:%v" $keycloak .Values.keycloak.port -}}
+{{- $routes := list (printf "%s=%s" (urlParse .Values.api.appUrl).host $apiInCluster) (printf "%s=%s" (urlParse (include "cohort-discovery.keycloakUrl" .)).host $keycloakInCluster) -}}
+{{- $files := dict "provision.py" (.Files.Get "files/provision/provision.py") "provision.json" .Values.provision.json -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "provision") | nindent 4 }}
+data:
+  {{- toYaml $files | nindent 2 }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "provision") | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "provision") | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "provision") | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $name }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "provision") | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "cohort-discovery.labels" (dict "root" . "component" "provision") | nindent 8 }}
+      annotations:
+        checksum/provision: {{ toYaml $files | sha256sum }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ $name }}
+      initContainers:
+        - name: wait-for-api-and-keycloak
+          image: {{ include "cohort-discovery.image" .Values.images.curl }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              until curl --silent --fail --output /dev/null http://{{ $apiInCluster }}/api/status \
+                && curl --silent --fail --output /dev/null http://{{ $keycloakInCluster }}/realms/cohort-discovery-service/.well-known/openid-configuration; do
+                echo "Waiting for {{ $api }} and {{ $keycloak }}..."
+                sleep 5
+              done
+      containers:
+        - name: provision
+          image: {{ include "cohort-discovery.image" .Values.images.python }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command: ["python", "-I", "/stack/provision/provision.py"]
+          env:
+            - name: PROVISION_FILE
+              value: /stack/provision/provision.json
+            - name: API_URL
+              value: {{ .Values.api.appUrl | quote }}
+            - name: ROUTE_HOSTS
+              value: {{ join "," $routes | quote }}
+            - name: TASK_API_BASE_URL
+              value: http://{{ $apiInCluster }}/api/v1
+            - name: ADMIN_EMAIL
+              value: {{ .Values.bootstrap.adminEmail | quote }}
+            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "ADMIN_PASSWORD" "key" (include "cohort-discovery.keycloakPasswordSecretKey" $admin.passwordKey)) | nindent 12 }}
+          volumeMounts:
+            - name: provision
+              mountPath: /stack/provision
+              readOnly: true
+      volumes:
+        - name: provision
+          configMap:
+            name: {{ $name }}
+{{- end }}
