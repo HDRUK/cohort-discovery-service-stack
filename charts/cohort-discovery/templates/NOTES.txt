@@ -3,6 +3,9 @@ Installed {{ .Chart.Name }} {{ .Chart.Version }} as {{ .Release.Name }} in {{ .R
 Forward the ports:
   kubectl -n {{ .Release.Namespace }} port-forward svc/{{ .Release.Name }}-web {{ .Values.web.port }}:{{ .Values.web.port }}
   kubectl -n {{ .Release.Namespace }} port-forward svc/{{ .Release.Name }}-api {{ .Values.api.port }}:{{ .Values.api.port }}
+{{- if .Values.keycloak.enabled }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ .Release.Name }}-keycloak {{ .Values.keycloak.port }}:{{ .Values.keycloak.port }}
+{{- end }}
 
 Sign in at http://localhost:{{ .Values.web.port }} as {{ .Values.bootstrap.adminEmail }}. The password is in the Secret:
   kubectl -n {{ .Release.Namespace }} get secret {{ include "cohort-discovery.secretName" . }} -o jsonpath='{.data.admin-password}' | base64 -d; echo

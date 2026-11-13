@@ -21,12 +21,12 @@ HDR UK's own dev, preprod and prod deployments are separate and must keep workin
 
 ## Status
 
-Planning, S0 (scaffold) and S1 (Helm core and Tilt) are done. The plan is in `docs/`:
+Planning, S0 (scaffold), S1 (Helm core and Tilt) and S8 (branding) are done; S2 (Keycloak) is in review. The plan is in `docs/`:
 
 | File | What |
 |---|---|
 | `docs/README.md` | Aims, ticket tracker (status, repo, dependencies), suggested order |
-| `docs/01-decisions.md` | Agreed decisions (D1–D5, D10–D12, D15, D17) and open ones, each with a recommendation |
+| `docs/01-decisions.md` | Agreed decisions and open ones, each with a recommendation |
 | `docs/02-verified-facts.md` | The state of every repo involved, with file paths. Read this before exploring |
 | `docs/tickets/` | One self-contained plan per ticket |
 
@@ -46,17 +46,18 @@ Service tickets are done in that service's own checkout, following its `CLAUDE.m
 
 ## Layout
 
-The planned layout, created by S0:
+The layout:
 
 ```
 services/{web,api,nlp}/   git submodules pinned to release tags (D5)
 charts/cohort-discovery/  Helm umbrella chart: the one definition of the stack (D12)
-  files/                  config the chart reads, each overridable through values (D17):
-                          nlp/, api/, api-init/, keycloak/, synthetic/, provision.json
-config/branding/          branding overlay, a web build input the chart doesn't read (D6, S8)
-scripts/                  local-secrets.sh, build-web.sh (branding overlay, D6), provisioning
+  files/                  the chart's own scripts: api-init/, synthetic/
+customisations/           everything a deployer changes, one folder per service (D21):
+                          api/claimsaccesscontrol.php, keycloak/realm.json, nlp/,
+                          web/branding/ (a web build input, D6), later provision.json
+scripts/                  local-secrets.sh, customisations-values.sh, build-web.sh (D6)
 Tiltfile                  local development on Rancher Desktop, kind or k3s
-generated/                git-ignored: local secrets
+generated/                git-ignored: local secrets, customisations values file
 ```
 
 ## Rules
@@ -93,7 +94,8 @@ Project agents in `.claude/agents/` are copied from `HDRUK/tech-team-claude-skil
 ```bash
 git submodule update --init           # services at their pinned tags
 scripts/local-secrets.sh              # writes generated/secrets.values.yaml once; Tilt runs it too
-helm lint charts/cohort-discovery -f generated/secrets.values.yaml
+scripts/customisations-values.sh      # customisations/ -> generated/customisations.values.yaml; Tilt runs it too
+helm lint charts/cohort-discovery -f generated/secrets.values.yaml -f generated/customisations.values.yaml
 export GITHUB_TOKEN=$(gh auth token)  # the API image build needs it until A1
 tilt up                               # the whole stack, local contexts only
 tilt down                             # keeps the MySQL volume

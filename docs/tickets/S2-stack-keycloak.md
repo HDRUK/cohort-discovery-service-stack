@@ -9,7 +9,7 @@ A throwaway Keycloak runs in the chart (on by default under Tilt), with a realm 
 `cohort-discovery-service-docs/docs/developers/deploying/examples/keycloak.md` is the specification:
 - realm `cohort-discovery-service`;
 - groups named after the `workgroup_mappings` values;
-- realm roles `GENERAL_ACCESS`, `SYSTEM_ADMIN` and `CUSTODIAN`;
+- realm roles `researcher`, `platform-admin` and `data-custodian` (renamed from `GENERAL_ACCESS`, `SYSTEM_ADMIN` and `CUSTODIAN` on 2026-11-13, to show the mapping);
 - a confidential client `cohort-discovery-service-api` with PKCE, redirecting to `…/api/auth/sso/default/callback`, with the post-logout redirect set;
 - flat `groups` and `roles` mappers on the ID token;
 - test users with verified email.
@@ -18,7 +18,7 @@ The main pitfall is that the issuer must be the same URL for the browser and the
 
 ## Steps
 1. `keycloak.enabled` in the chart: pinned `quay.io/keycloak/keycloak`, `start-dev --import-realm`, a realm JSON from `charts/cohort-discovery/files/keycloak/` via a ConfigMap, and `dev-file` storage on a PVC. No separate database: it's throwaway.
-2. Fictional users only, e.g. `admin@example.com` with `SYSTEM_ADMIN` and `researcher@example.com` with `GENERAL_ACCESS`. Their passwords come from `generated/secrets.values.yaml` (S1), never committed.
+2. Realm groups, realm roles and users come from `keycloak.groups`, `keycloak.roles` and `keycloak.users` in the values, with fictional users only. The defaults are `researcher@example.com` with `researcher` and `custodian@example.com` with `data-custodian` and the seeded custodian's group. Neither exists in the API, so the API creates each on its first sign-in. The admin isn't in Keycloak: the API seeds it and it signs in with a password. Every user also gets `keycloak.defaultGroup` (D20). Each user's password comes from a key in `generated/secrets.values.yaml` (S1), never committed. Extra CDS workgroups for new groups to map to are seeded from `bootstrap.workgroups` (replaced on 2026-11-13 by `customisations/api/workgroups.php`, D9).
 3. Hostname. Back-channel endpoints and `hostAliases` won't work (see `02-verified-facts.md`, API, SSO): the API rejects discovered endpoints that aren't on the issuer's origin, and PHP's libcurl resolves `localhost` and `*.localhost` itself. Instead, make the browser URL work inside the pods, as `AndyRae/cd-build` does with Compose:
    - Keycloak listens on the same port inside the cluster as its host port-forward (`KC_HTTP_PORT`, `KC_HOSTNAME=http://localhost:<port>`), configurable like the other host ports.
    - The API pod gets a `socat` sidecar listening on `localhost:<keycloak port>` and forwarding to the Keycloak Service. `SSO_DEFAULT_ISSUER` is the browser URL.

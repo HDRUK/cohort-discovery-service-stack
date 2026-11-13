@@ -1,0 +1,164 @@
+{{- if .Values.keycloak.enabled }}
+{{- $name := include "cohort-discovery.name" (dict "root" . "component" "keycloak") -}}
+{{- $realmJson := include "cohort-discovery.keycloakRealm" . -}}
+{{- $themeFiles := .Values.keycloak.themeFiles -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-realm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "keycloak") | nindent 4 }}
+data:
+  realm.json: |
+    {{- $realmJson | nindent 4 }}
+---
+{{- if $themeFiles }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-theme
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "keycloak") | nindent 4 }}
+data:
+  {{- range $index, $path := keys $themeFiles | sortAlpha }}
+  file-{{ $index }}: |
+    {{- index $themeFiles $path | nindent 4 }}
+  {{- end }}
+---
+{{- end }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "keycloak") | nindent 4 }}
+  annotations:
+    tilt.dev/down-policy: keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- with .Values.keycloak.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.keycloak.storageSize }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "keycloak") | nindent 4 }}
+spec:
+  selector:
+    {{- include "cohort-discovery.selectorLabels" (dict "root" . "component" "keycloak") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.keycloak.port }}
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "keycloak") | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "cohort-discovery.selectorLabels" (dict "root" . "component" "keycloak") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cohort-discovery.labels" (dict "root" . "component" "keycloak") | nindent 8 }}
+      annotations:
+        checksum/realm: {{ $realmJson | sha256sum }}
+        checksum/theme: {{ toJson $themeFiles | sha256sum }}
+    spec:
+      containers:
+        - name: keycloak
+          image: {{ include "cohort-discovery.image" .Values.images.keycloak }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          args:
+            - start-dev
+            - --import-realm
+          env:
+            - name: KC_HTTP_PORT
+              value: {{ .Values.keycloak.port | quote }}
+            - name: KC_HOSTNAME
+              value: {{ include "cohort-discovery.keycloakUrl" . | quote }}
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              value: admin
+            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "KC_BOOTSTRAP_ADMIN_PASSWORD" "key" "keycloak-admin-password") | nindent 12 }}
+            - name: CDS_API_URL
+              value: {{ .Values.api.appUrl | quote }}
+            - name: CDS_WEB_URL
+              value: {{ .Values.web.appUrl | quote }}
+            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "CDS_CLIENT_SECRET" "key" "keycloak-client-secret") | nindent 12 }}
+            {{- range include "cohort-discovery.keycloakPasswordKeys" . | fromJsonArray }}
+            {{- include "cohort-discovery.secretEnv" (dict "root" $ "name" (include "cohort-discovery.keycloakPasswordEnvName" .) "key" (include "cohort-discovery.keycloakPasswordSecretKey" .)) | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.keycloak.port }}
+            - name: management
+              containerPort: 9000
+          startupProbe:
+            httpGet:
+              path: /health/started
+              port: management
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: management
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: management
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.keycloak.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /opt/keycloak/data/h2
+            - name: realm
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+            {{- if $themeFiles }}
+            - name: theme
+              mountPath: /opt/keycloak/themes/cohort-discovery
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ $name }}-data
+        - name: realm
+          configMap:
+            name: {{ $name }}-realm
+        {{- if $themeFiles }}
+        - name: theme
+          configMap:
+            name: {{ $name }}-theme
+            items:
+              {{- range $index, $path := keys $themeFiles | sortAlpha }}
+              - key: file-{{ $index }}
+                path: {{ $path }}
+              {{- end }}
+        {{- end }}
+{{- end }}

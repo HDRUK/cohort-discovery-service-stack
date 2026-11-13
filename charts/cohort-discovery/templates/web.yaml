@@ -50,7 +50,7 @@ spec:
             - name: APPLICATION_MODE
               value: standalone
             - name: API_BASE_URL
-              value: {{ $apiUrl }}
+              value: {{ if .Values.keycloak.enabled }}{{ .Values.api.appUrl }}{{ else }}{{ $apiUrl }}{{ end }}
             - name: COOKIE_TOKEN_NAME
               value: {{ .Values.web.cookieTokenName | quote }}
             {{- range $key, $value := .Values.web.extraEnv }}
@@ -75,3 +75,6 @@ spec:
             timeoutSeconds: 5
           resources:
             {{- toYaml .Values.web.resources | nindent 12 }}
+        {{- if .Values.keycloak.enabled }}
+        {{- include "cohort-discovery.localhostForward" (dict "root" . "name" "api-forward" "listenPort" (include "cohort-discovery.urlPort" (dict "name" "api.appUrl" "url" .Values.api.appUrl)) "target" (printf "%s:%v" (include "cohort-discovery.name" (dict "root" . "component" "api")) .Values.api.port)) | nindent 8 }}
+        {{- end }}
