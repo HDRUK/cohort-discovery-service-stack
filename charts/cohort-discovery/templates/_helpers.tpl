@@ -194,3 +194,28 @@ keycloak-user-{{ . | kebabcase }}
       value: {{ .Values.scheduler.serviceAccountName | quote }}
     {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "MYSQL_PWD" "key" "mysql-password") | nindent 4 }}
 {{- end -}}
+
+{{- define "cohort-discovery.slug" -}}
+{{ regexReplaceAll "[^a-z0-9]+" (lower .) "-" | trimAll "-" }}
+{{- end -}}
+
+{{- define "cohort-discovery.syntheticCollections" -}}
+{{- $collections := list -}}
+{{- if and .Values.synthetic.enabled .Values.provision.enabled .Values.provision.json -}}
+{{- range (fromJson .Values.provision.json).custodians -}}
+{{- range .hosts -}}
+{{- $host := include "cohort-discovery.slug" .name -}}
+{{- range .collections -}}
+{{- if .synthetic -}}
+{{- $size := int (.syntheticSize | default $.Values.synthetic.defaultSize) -}}
+{{- if not (has $size (list 100 1000 1001)) -}}
+{{- fail (printf "provision.json: %s has syntheticSize %v; omop-lite has 100, 1000 or 1001" .name $size) -}}
+{{- end -}}
+{{- $collections = append $collections (dict "slug" (include "cohort-discovery.slug" .name) "host" $host "size" $size) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{ toJson $collections }}
+{{- end -}}

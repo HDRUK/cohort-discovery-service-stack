@@ -28,6 +28,15 @@ images:
   python:
     repository: python
     tag: 3.13.17-alpine3.24
+  postgres:
+    repository: postgres
+    tag: "16.14"
+  omopLite:
+    repository: ghcr.io/health-informatics-uon/omop-lite
+    tag: 0.9.3
+  bunny:
+    repository: ghcr.io/health-informatics-uon/hutch/bunny
+    tag: 1.9.8
 
 mysql:
   appDatabase: cohort_discovery
@@ -154,6 +163,24 @@ bootstrap:
 provision:
   enabled: true
   json: ""
+
+synthetic:
+  enabled: true
+  defaultSize: 100
+  storageSize: 5Gi
+  storageClassName: ""
+  bunny:
+    pollingInterval: 5
+    lowNumberSuppressionThreshold: 10
+    roundingTarget: 10
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  bunnyResources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
 
 scheduler:
   enabled: true

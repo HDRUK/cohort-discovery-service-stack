@@ -178,6 +178,18 @@ Checked against api `b257363` and Keycloak 26.8.2 on Rancher Desktop.
 - **Adding a user to `keycloak.users` doesn't reach a running Keycloak**: the realm is imported only when it doesn't exist. Delete the realm (or the Keycloak PVC) and restart Keycloak to pick it up.
 - **Host credentials** written by the provisioner pass `CollectionHostBasicAuth`: `GET /api/v1/task/nextjob/{collection pid}` returns 204 with them and 401 without. `TASK_API_BASE_URL` is `http://<api service>:<port>/api/v1`.
 
+## Learnt running synthetic BUNNYs (S5, 2026-11-16)
+
+Checked against api `b257363`, `omop-lite:0.9.3` and `hutch/bunny:1.9.8` on Rancher Desktop.
+
+- **omop-lite 0.9.3** reads `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `SCHEMA_NAME` (default `public`), `SYNTHETIC`, `SYNTHETIC_NUMBER` (bundles `100`, `1000`, `1001`), `DIALECT`, `OMOP_VERSION`, `DATA_DIR`, `FTS_CREATE`, `DELIMITER` and `LOG_LEVEL`. If the schema already has tables it prints "Already Loaded" and exits 0, so it's safe as an init container. A load that crashed part-way leaves tables behind and won't be retried.
+- **Type-a queries** worked end to end from the web: both BUNNYs logged "Solved availability query" and the collections show a last ping and last query.
+- **Type-b tasks need `collection_config` rows.** `DistributionsCollector` (the `distributions-collector` command) selects enabled configs whose `run_time_hour` and `run_time_minute` match the current minute in `Europe/London`, then checks `frequency_mode` (`1` weekly, `2` monthly, `3` quarterly, `4` twice a year) against `run_time_frequency` (weekly: Carbon `dayOfWeek`, 0 is Sunday; monthly: week of the month). With no configs it returns `{"configs":[]}` and creates nothing. Provisioned collections had none, so the term directory and the "Last Distribution" columns stayed empty.
+  - `CollectionSeeder` creates `GENERIC` weekly with `run_time_frequency` 6 (Saturday, though its comment says Sunday) and `DEMOGRAPHICS` monthly in week 1, both at 23:59.
+  - `GET /v1/collection_config` is admin-only and returns every config, unfiltered and not paginated. `POST /v1/collection_config` takes `collection_id`, `run_time_hour`, `run_time_minute`, `frequency_mode`, `run_time_frequency`, `enabled` and `type` (`GENERIC` or `DEMOGRAPHICS`), all required.
+  - `POST /v1/collection/{pid}/distributions/run-manually` with `{"query_type": "GENERIC"|"DEMOGRAPHICS"}` creates the query and a type-b task at once. It has no authorisation check beyond being signed in.
+- **Web:** opening a collection that has no distributions threw `TypeError: n is not iterable` in the browser. Not yet checked whether it goes away once distributions exist.
+
 ## Prior art to reuse
 
 - `cohort-discovery-service-evaluator/compose.yaml`: mysql (with `init/mysql/01-omop.sql`), `api-init` (`init/api-init.sh`), nlp and api in standalone mode, with mounted Passport keys. It has no web and no Keycloak.

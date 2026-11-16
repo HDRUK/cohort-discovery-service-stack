@@ -12,6 +12,15 @@ if k8s_context() not in LOCAL_CONTEXTS:
 
 allow_k8s_contexts(k8s_context())
 
+def slug(name):
+    result = ''
+    for character in name.lower().elems():
+        if ('a' <= character and character <= 'z') or ('0' <= character and character <= '9'):
+            result += character
+        elif not result.endswith('-'):
+            result += '-'
+    return result.strip('-')
+
 RELEASE = 'cohort-discovery'
 NAMESPACE = 'cohort-discovery'
 SECRETS_VALUES = 'generated/secrets.values.yaml'
@@ -104,6 +113,22 @@ if KEYCLOAK_ENABLED and os.path.exists('customisations/provision.json'):
         labels=['init'],
         resource_deps=['api', 'keycloak'],
     )
+    synthetic_collections = [
+        slug(collection['name'])
+        for custodian in decode_json(read_file('customisations/provision.json'))['custodians']
+        for host in custodian.get('hosts', [])
+        for collection in host.get('collections', [])
+        if collection.get('synthetic', False)
+    ]
+    if synthetic_collections:
+        k8s_resource('cohort-discovery-synthetic-db', new_name='synthetic-db', labels=['synthetic'])
+    for collection in synthetic_collections:
+        k8s_resource(
+            'cohort-discovery-bunny-' + collection,
+            new_name='bunny-' + collection,
+            labels=['synthetic'],
+            resource_deps=['synthetic-db', 'provision'],
+        )
 k8s_resource(
     'cohort-discovery-api',
     new_name='api',

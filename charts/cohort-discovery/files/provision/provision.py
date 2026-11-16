@@ -1,3 +1,4 @@
+import datetime
 import html
 import http.cookiejar
 import json
@@ -12,6 +13,13 @@ import urllib.request
 
 REDIRECT_STATUSES = {301, 302, 303, 307, 308}
 SERVICE_ACCOUNT_DIR = "/var/run/secrets/kubernetes.io/serviceaccount"
+BUNNY_HOST_LABEL = "cohort-discovery.hdruk.ac.uk/bunny-host"
+WEEKLY = 1
+MONTHLY = 2
+DISTRIBUTION_SCHEDULES = {
+    "GENERIC": {"frequency_mode": WEEKLY, "run_time_frequency": 6},
+    "DEMOGRAPHICS": {"frequency_mode": MONTHLY, "run_time_frequency": 1},
+}
 
 
 class ProvisionError(Exception):
@@ -125,27 +133,44 @@ class Kube:
         context = ssl.create_default_context(cafile=f"{SERVICE_ACCOUNT_DIR}/ca.crt")
         self.opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=context))
         self.secrets_url = f"https://kubernetes.default.svc/api/v1/namespaces/{namespace}/secrets"
+        self.deployments_url = f"https://kubernetes.default.svc/apis/apps/v1/namespaces/{namespace}/deployments"
 
-    def request(self, method, path, body=None, content_type="application/json"):
-        status, _, _ = send(
-            self.opener, method, self.secrets_url + path,
+    def request(self, method, url, body=None, content_type="application/json"):
+        status, _, text = send(
+            self.opener, method, url,
             None if body is None else json.dumps(body).encode(),
             {"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": content_type},
         )
-        return status
+        return status, text
 
     def secret_exists(self, name):
-        status = self.request("GET", f"/{name}")
+        status, _ = self.request("GET", f"{self.secrets_url}/{name}")
         if status not in (200, 404):
             raise ProvisionError(f"reading Secret {name} returned HTTP {status}")
         return status == 200
 
     def write_secret(self, name, string_data):
-        status = self.request("POST", "", {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": name}, "stringData": string_data})
+        status, _ = self.request("POST", self.secrets_url, {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": name}, "stringData": string_data})
         if status == 409:
-            status = self.request("PATCH", f"/{name}", {"stringData": string_data}, "application/merge-patch+json")
+            status, _ = self.request("PATCH", f"{self.secrets_url}/{name}", {"stringData": string_data}, "application/merge-patch+json")
         if status not in (200, 201):
             raise ProvisionError(f"writing Secret {name} returned HTTP {status}")
+
+    def restart_deployments(self, label_selector):
+        status, text = self.request("GET", f"{self.deployments_url}?labelSelector={urllib.parse.quote(label_selector)}")
+        if status != 200:
+            raise ProvisionError(f"listing Deployments {label_selector} returned HTTP {status}")
+        names = [item["metadata"]["name"] for item in json.loads(text)["items"]]
+        restarted_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        for name in names:
+            status, _ = self.request(
+                "PATCH", f"{self.deployments_url}/{name}",
+                {"spec": {"template": {"metadata": {"annotations": {"kubectl.kubernetes.io/restartedAt": restarted_at}}}}},
+                "application/merge-patch+json",
+            )
+            if status != 200:
+                raise ProvisionError(f"restarting Deployment {name} returned HTTP {status}")
+        return names
 
 
 class Provisioner:
@@ -168,6 +193,9 @@ class Provisioner:
         })
         if unknown:
             raise ProvisionError(f"unknown workgroups {', '.join(unknown)}; the API has {', '.join(sorted(workgroup_ids))}")
+        self.scheduled_types = {}
+        for config in self.api("GET", "/v1/collection_config"):
+            self.scheduled_types.setdefault(config["collection_id"], set()).add(config["type"])
         custodians = {custodian["name"]: custodian for custodian in self.api("GET", "/v1/custodians")}
         for custodian_plan in plan["custodians"]:
             custodian = custodians.get(custodian_plan["name"]) or self.create_custodian(custodian_plan["name"])
@@ -183,6 +211,7 @@ class Provisioner:
 
     def provision_host(self, custodian, host, host_plan, workgroup_ids):
         secret_name = f"bunny-{slug(host_plan['name'])}"
+        identifiers_changed = host is None
         if host is None:
             host = self.api("POST", "/v1/collection_hosts", {
                 "name": host_plan["name"], "query_context_type": "bunny", "custodian_id": custodian["id"],
@@ -201,15 +230,20 @@ class Provisioner:
             )
         collection_ids = {}
         for collection_plan in host_plan.get("collections", []):
-            collection = self.provision_collection(custodian, host, collection_plan, workgroup_ids)
+            collection, created = self.provision_collection(custodian, host, collection_plan, workgroup_ids)
+            identifiers_changed = identifiers_changed or created
             collection_ids[f"collection-{slug(collection_plan['name'])}"] = collection["pid"]
         if collection_ids:
             self.kube.write_secret(secret_name, collection_ids)
+        if identifiers_changed:
+            for name in self.kube.restart_deployments(f"{BUNNY_HOST_LABEL}={slug(host_plan['name'])}"):
+                log(f"restarted {name} to pick up Secret {secret_name}")
 
     def provision_collection(self, custodian, host, collection_plan, workgroup_ids):
         name = collection_plan["name"]
         collection = next((existing for existing in host["collections"] if existing["name"] == name), None)
-        if collection is None:
+        created = collection is None
+        if created:
             collection = self.api("POST", f"/v1/custodians/{custodian['pid']}/collections", {
                 "name": name,
                 "description": collection_plan["description"],
@@ -228,7 +262,20 @@ class Provisioner:
         if state != "active":
             self.api("PUT", f"/v1/collections/{collection['id']}/transition_to", {"state": "active"})
             self.changed(f"moved collection {name} from {state} to active")
-        return detail
+        self.schedule_distributions(detail)
+        return detail, created
+
+    def schedule_distributions(self, collection):
+        scheduled = self.scheduled_types.get(collection["id"], set())
+        for query_type, schedule in DISTRIBUTION_SCHEDULES.items():
+            if query_type in scheduled:
+                continue
+            self.api("POST", "/v1/collection_config", {
+                "collection_id": collection["id"], "type": query_type, **schedule,
+                "run_time_hour": 23, "run_time_minute": 59, "enabled": 1,
+            })
+            self.api("POST", f"/v1/collection/{collection['pid']}/distributions/run-manually", {"query_type": query_type})
+            self.changed(f"scheduled {query_type} distributions for collection {collection['name']} and ran them now")
 
 
 def main():

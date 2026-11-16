@@ -7,3 +7,4 @@ generated/
 *.key
 .claude/settings.local.json
 pr-descriptions/
+__pycache__/

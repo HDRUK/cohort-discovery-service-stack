@@ -56,7 +56,7 @@ has_key() {
 add_missing_keys() {
   local key added=()
   cp "${secrets_file}" "${work_dir}/secrets.values.yaml"
-  for key in keycloakAdminPassword keycloakClientSecret researcherPassword custodianPassword; do
+  for key in keycloakAdminPassword keycloakClientSecret researcherPassword custodianPassword syntheticDbPassword; do
     if ! has_key "${key}"; then
       echo "  ${key}: \"$(random_hex 24)\"" >> "${work_dir}/secrets.values.yaml"
       added+=("${key}")

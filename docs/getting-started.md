@@ -1,6 +1,6 @@
 # Getting started
 
-The stack runs MySQL, Redis, the API (with its Horizon queue worker and scheduled jobs), NLP, the web app and a throwaway Keycloak for single sign-on, in standalone mode with the minimal OMOP vocabulary, a seeded admin and two Keycloak users. The full vocabulary (S3), provisioning (S4) and synthetic collections (S5) come later.
+The stack runs MySQL, Redis, the API (with its Horizon queue worker and scheduled jobs), NLP, the web app and a throwaway Keycloak for single sign-on, in standalone mode with the minimal OMOP vocabulary, a seeded admin and two Keycloak users. It provisions the collections in `customisations/provision.json` and serves each synthetic one from its own BUNNY. The full vocabulary (S3) comes later.
 
 No local Kubernetes cluster? See [Running with Docker Compose](alternatives/docker-compose.md) for a community alternative.
 
@@ -274,6 +274,26 @@ For each host it writes a Secret `bunny-<host>` with the BUNNY's `TASK_API_BASE_
 kubectl -n cohort-discovery logs job/cohort-discovery-provision
 ```
 
+Each collection also gets two distribution schedules, the same ones the API's `CollectionSeeder` creates: `GENERIC` (concept counts) weekly and `DEMOGRAPHICS` monthly, at 23:59 London time. Without them the `distributions-collector` job creates no type-b tasks, and the term directory and the "Last Distribution" columns stay empty. When the Job adds a schedule it also runs it once straight away, so the distributions arrive within a minute or so. A collection that already has a schedule of that type is left alone, so a schedule changed in the app stays changed.
+
+When the Job creates a host or a collection, it restarts that host's BUNNY Deployments so they read the new IDs from the Secret.
+
+## Synthetic collections
+
+Each collection marked `"synthetic": true` in `provision.json` gets a BUNNY, `bunny-<collection>`, serving synthetic OMOP data, so queries return results without any real data. They describe no real people.
+
+- One Postgres, `synthetic-db`, holds a database per synthetic collection. Its volume is kept by `tilt down`.
+- On start, the BUNNY's init containers create the collection's database if it's missing and load omop-lite's bundled synthetic data into schema `omop`. omop-lite loads a schema only once, so restarts don't reload it.
+- `syntheticSize` on a collection picks the bundle: 100, 1000 or 1001 people. The default is `synthetic.defaultSize` (100). Any other value fails the render. Collections of the same size return the same counts.
+- Each Deployment runs two BUNNY containers: type `a` answers availability queries and type `b` collects distributions. Credentials and the collection ID come from the provision Job's `bunny-<host>` Secret, so they start once the Job has run.
+
+To reload a collection's data, drop its database and restart its BUNNY:
+
+```bash
+kubectl -n cohort-discovery exec cohort-discovery-synthetic-db-0 -- dropdb --username=postgres synthetic_collection_a
+kubectl -n cohort-discovery rollout restart deployment/cohort-discovery-bunny-synthetic-collection-a
+```
+
 ## Scheduled jobs
 
 Four CronJobs call `POST /api/v1/services/caller/{command}` every minute with the scheduler service account, as production's Cloud Scheduler does: `distributions-collector`, `task-cleanup-job`, `collection-no-activity-monitor` and `collection-task-backlog-monitor`. Change the schedules under `scheduler.jobs`, or turn them off with `scheduler.enabled=false`. To run one now:
@@ -295,6 +315,9 @@ kubectl -n cohort-discovery logs job/task-cleanup-now
 | `keycloak.realmJson`, `api.claimsAccessControlPhp`, `nlp.rulesJson`, `nlp.mappingsJson`, `provision.json` | Set only by `generated/customisations.values.yaml`, from `customisations/` (see [Customisations](#customisations)) |
 | `api.extraEnv`, `nlp.extraEnv`, `web.extraEnv` | Extra non-secret environment variables |
 | `provision.enabled` | The provision Job on or off; it's off when `provision.json` isn't supplied |
+| `synthetic.enabled`, `synthetic.defaultSize` | Synthetic BUNNYs on or off, and the default omop-lite bundle |
+| `synthetic.bunny.*` | BUNNY polling interval, low-number suppression and rounding |
+| `synthetic.storageSize`, `synthetic.storageClassName`, `synthetic.resources`, `synthetic.bunnyResources` | The synthetic Postgres's volume, and resources |
 | `scheduler.*` | Scheduled jobs |
 | `secrets.*` | Set only by `generated/secrets.values.yaml`; never in `values.yaml` |
 
@@ -355,7 +378,6 @@ Theme changes reach a running Keycloak without a re-import: Tilt restarts it whe
 | `services/` | web, API and NLP submodules |
 | `charts/cohort-discovery/` | the Helm chart: the one definition of the stack |
 | `charts/cohort-discovery/files/api-init/` | the init Job's scripts |
-| `charts/cohort-discovery/files/synthetic/` | somop configs (S5) |
 | `customisations/` | everything a deployer changes: claims mapping, Keycloak realm, NLP rules and mappings, web branding (D21) |
 | `scripts/` | `local-secrets.sh`, `customisations-values.sh`, `build-web.sh` |
 | `generated/` | git-ignored: local secrets and the customisations values file |
