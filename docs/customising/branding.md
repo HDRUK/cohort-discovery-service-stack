@@ -4,7 +4,7 @@ The stack ships a neutral brand, "Feasibility Tool", rather than HDR UK's. To us
 
 ## The web app
 
-The web is branded when its image is built, so a change means a rebuild. Tilt rebuilds it when anything in the folder changes; with Helm, rebuild it with `scripts/build-web.sh` (see [Running with Helm](../running/helm.md#1-build-the-images)).
+The web is branded when its image is built, so a change means a rebuild. Tilt rebuilds it when anything in the folder changes; on a cluster, rebuild and push it (see [Deploy to a cluster](../deploying/index.md#2-build-and-push-the-images)).
 
 | File | What |
 |---|---|
@@ -18,6 +18,9 @@ The web is branded when its image is built, so a change means a rebuild. Tilt re
 
 ### `branding.config.ts`
 
+The service docs' [branding page](https://hdruk.github.io/cohort-discovery-service-docs/developers/deploying/branding/) is the full reference for every field, the theme layers and fonts. In short:
+
+
 | Field | What |
 |---|---|
 | `productName` | The short name, used in sentences such as "Sign in to your … workspace" |
@@ -25,10 +28,10 @@ The web is branded when its image is built, so a change means a rebuild. Tilt re
 | `description` | The page description search engines show |
 | `loginTitle`, `loginHeadline` | The sign-in page's title and headline, each exactly two strings, one per line |
 | `loginSubheadline` | The text under the headline |
-| `organisationName` | Used in the footer's link to your organisation |
+| `organisationName` | Your organisation's name. The footer link that uses it is hidden in standalone mode |
 | `copyrightHolder` | The copyright line on the sign-in page |
 | `logoAlt` | The logo's alternative text |
-| `links.organisation` | Your organisation's website, linked from the footer |
+| `links.organisation` | Your organisation's website. Not linked from the footer in standalone mode |
 | `links.cookieNotice`, `links.accessibilityStatement` | Footer links. In standalone mode each is hidden unless set |
 | `legal.*` | Each legal page's `title` and `lastUpdated` |
 | `hdrukChromeInStandalone` | `true` shows the HDR UK header and footer in standalone mode. Leave it `false` |
@@ -36,7 +39,7 @@ The web is branded when its image is built, so a change means a rebuild. Tilt re
 ### Before a real deployment
 
 - Replace both legal pages.
-- Set `organisationName`, `copyrightHolder` and `links.organisation`.
+- Set `copyrightHolder`, and `links.cookieNotice` and `links.accessibilityStatement` if you have those pages.
 
 ### Known gaps
 

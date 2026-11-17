@@ -2,43 +2,36 @@
 
 Run the Cohort Discovery Service on your own Kubernetes cluster.
 
-The Cohort Discovery Service lets researchers ask *how many people match these criteria?* across many data collections at once, without seeing any individual's record. Each collection stays with its data custodian; an agent beside the data, BUNNY, runs the queries and sends back rounded counts.
+The Cohort Discovery Service lets researchers ask *how many people match these criteria?* across many data collections at once, without seeing any individual's record. Each collection stays with its data custodian; agents beside the data, BUNNYs, run the queries and send back rounded counts.
 
 This stack runs the whole service in **standalone mode**, with its own sign-in through Keycloak, an OMOP vocabulary, and synthetic collections that answer queries straight away. One Helm chart defines it; Tilt drives it on a laptop.
 
 <div class="grid cards" markdown>
 
--   **New here?**
+-   **1. Understand it**
 
-    Read the [Overview](overview.md) for what each part does, then follow [Getting started](getting-started.md) to run it on your laptop.
+    The [Overview](overview.md) shows every part on one diagram, how a query flows, and the words the service uses.
 
--   **Make it yours**
+-   **2. Try it on your laptop**
+
+    [Run the whole stack](getting-started.md) with Tilt, sign in as a fictional researcher and run a query.
+
+-   **3. Make it yours**
 
     [Customise](customising/index.md) the users and access, branding, collections, vocabulary and NLP rules.
 
--   **Run it for real**
+-   **4. Deploy it**
 
-    [Install it beyond a laptop](installing/beyond-a-laptop.md), with an ingress, TLS, external databases and your own identity provider.
-
--   **Something wrong?**
-
-    [Troubleshooting](operations/troubleshooting.md) covers the common failures; [Maintaining](operations/maintaining.md) covers logs, upgrades and backups.
+    [Deploy to a cluster](deploying/index.md) with Helm, then [connect custodians' collections](deploying/connect-a-collection.md).
 
 </div>
 
-## Quick start
+Something wrong? See the [FAQ](faq.md). Working on the web app? See [Develop the web app](developing/web.md).
 
-```bash
-git clone --recurse-submodules https://github.com/HDRUK/cohort-discovery-service-stack.git
-cd cohort-discovery-service-stack
-export GITHUB_TOKEN=$(gh auth token)   # for now, must be able to read HDR UK's private composer packages
-tilt up
-```
-
-Then open http://localhost:3000 and choose **Single Sign-On**. [Getting started](getting-started.md#sign-in) lists the users and where their passwords are.
+These pages cover running **this stack**. The general [Cohort Discovery Service docs](https://hdruk.github.io/cohort-discovery-service-docs/) cover the service itself: BUNNY, identity providers, OMOP requirements and governance. These pages link to them where they're the better reference.
 
 !!! info "Status"
-    Usable for local evaluation and development. Installing on a shared cluster is in review; published images and CI are still to come. The [tracker](https://github.com/HDRUK/cohort-discovery-service-stack/blob/main/docs/README.md) has the detail.
+    Usable for local evaluation and development, and installable on a shared cluster with some [known limitations](deploying/index.md#known-limitations). Published images and CI are still to come. The [tracker](https://github.com/HDRUK/cohort-discovery-service-stack/blob/main/docs/README.md) has the detail.
 
 !!! warning "Personal data"
     The service stores researchers' email addresses, identity-provider claims and activity logs. Read the [personal data inventory](data-protection/personal-data-inventory.md) before running it with real users.

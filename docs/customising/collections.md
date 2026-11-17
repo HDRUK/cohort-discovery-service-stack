@@ -55,7 +55,7 @@ kubectl -n cohort-discovery logs job/cohort-discovery-provision
 
 ## Host credentials
 
-For each host, the Job writes a Secret `bunny-<host>` (for example `bunny-synthetic-host`) with the BUNNY's `TASK_API_BASE_URL`, `TASK_API_USERNAME` and `TASK_API_PASSWORD`, and a `collection-<collection>` key with each collection's ID. `TASK_API_BASE_URL` is the API's address inside the cluster; a BUNNY outside the cluster needs `api.appUrl` plus `/api/v1` instead, with the same username and password.
+For each host, the Job writes a Secret `bunny-<host>` (for example `bunny-synthetic-host`) with the BUNNY's `TASK_API_BASE_URL`, `TASK_API_USERNAME` and `TASK_API_PASSWORD`, and a `collection-<collection>` key with each collection's ID. `TASK_API_BASE_URL` is the API's address inside the cluster; a BUNNY outside the cluster needs `api.appUrl` plus `/api/v1` instead, with the same username and password. See [Connect a collection](../deploying/connect-a-collection.md).
 
 The API shows a host's credentials only once, when it creates the host, so **the Secret is the only copy**. If the host exists and its Secret doesn't, the Job stops and asks you to delete the host in the app or restore the Secret.
 
@@ -63,7 +63,7 @@ When the Job creates a host or collection, it restarts that host's BUNNYs so the
 
 ## Distributions
 
-Each collection gets two distribution schedules, as the API's own seeders create: `GENERIC` (concept counts) weekly and `DEMOGRAPHICS` monthly, at 23:59 London time. Without them the term directory and the "Last Distribution" columns stay empty. When the Job adds a schedule it also runs it once, so distributions arrive within a minute or so. A schedule you've changed in the app is left alone.
+The provision Job gives each collection two distribution schedules, as the API's own seeders do: `GENERIC` (concept counts) weekly and `DEMOGRAPHICS` monthly, at 23:59 London time. The schedule is stored with the collection; the `distributions-collector` scheduled job checks every minute for schedules that are due, and the collection's type B BUNNY does the work. Without them the term directory and the "Last Distribution" columns stay empty. When the Job adds a schedule it also runs it once, so distributions arrive within a minute or so. A schedule you've changed in the app is left alone.
 
 ## Synthetic collections
 
@@ -71,7 +71,8 @@ Each collection with `"synthetic": true` gets a Deployment, `cohort-discovery-bu
 
 - One Postgres, `cohort-discovery-synthetic-db`, holds a database per synthetic collection. Under Tilt its volume survives `tilt down`.
 - On start, the BUNNY's init containers create the collection's database if it's missing and load the synthetic data once. Restarts don't reload it.
-- Each Deployment runs two BUNNYs: one answers queries, the other collects distributions. They start once the provision Job has written their host's Secret.
+- Each Deployment runs two BUNNY containers: `bunny-a` (type A, answers queries) and `bunny-b` (type B, collects distributions), as the service docs' [two-instance pattern](https://hdruk.github.io/cohort-discovery-service-docs/bunny/two-instance-pattern/) describes. They start once the provision Job has written their host's Secret.
+- For custom or larger synthetic data, see [somop](https://hdruk.github.io/cohort-discovery-service-docs/developers/somop/) in the service docs.
 
 Settings, under `synthetic` in the values:
 
@@ -80,7 +81,7 @@ Settings, under `synthetic` in the values:
 | `enabled` | `true` | Turns synthetic BUNNYs off even when `provision.json` marks collections synthetic |
 | `defaultSize` | `100` | The bundle for collections without `syntheticSize` |
 | `bunny.pollingInterval` | `5` | Seconds between the BUNNYs' polls |
-| `bunny.lowNumberSuppressionThreshold` | `10` | Counts below this are reported as zero |
+| `bunny.lowNumberSuppressionThreshold` | `10` | Counts below this are reported as 0. See the service docs on [disclosure control](https://hdruk.github.io/cohort-discovery-service-docs/architecture/governance/) |
 | `bunny.roundingTarget` | `10` | Counts are rounded to the nearest multiple |
 
 To reload a collection's data, drop its database and restart its BUNNY. The database name is the collection's name in lower case, with underscores for spaces and punctuation:

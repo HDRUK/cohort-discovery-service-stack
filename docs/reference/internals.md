@@ -2,6 +2,16 @@
 
 What the setup Jobs do, for when you need to know why something is the way it is. Every Job is safe to run again.
 
+```mermaid
+flowchart LR
+  db[(MySQL)] --> init[api-init<br/>migrate, seed, first admin]
+  init --> vocab[vocab-import<br/>only with an Athena download]
+  init --> api[API running]
+  api --> provision[provision<br/>custodians, hosts, collections]
+  kc[Keycloak running] --> provision
+  provision --> bunnies[Synthetic BUNNYs start]
+```
+
 ## `api-init`
 
 Runs `charts/cohort-discovery/files/api-init/api-init.sh` in the API image, as a Helm post-install and post-upgrade hook.

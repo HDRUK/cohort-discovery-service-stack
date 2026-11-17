@@ -105,21 +105,22 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Overview: overview.md
-  - Getting started: getting-started.md
-  - Running with Helm: running/helm.md
-  - Installing beyond a laptop: installing/beyond-a-laptop.md
-  - Customising:
-      - Overview: customising/index.md
+  - Try it on your laptop: getting-started.md
+  - Customise:
+      - How to customise: customising/index.md
       - Identity and access: customising/identity-and-access.md
       - Branding: customising/branding.md
       - Collections: customising/collections.md
       - Vocabulary: customising/vocabulary.md
       - NLP rules: customising/nlp.md
-  - Operations:
-      - Troubleshooting: operations/troubleshooting.md
-      - Maintaining: operations/maintaining.md
+  - Deploy to a cluster:
+      - Install with Helm: deploying/index.md
+      - Connect a collection: deploying/connect-a-collection.md
+  - Develop the web app: developing/web.md
+  - FAQ: faq.md
   - Reference:
       - Chart values: reference/values.md
+      - Scheduled jobs: reference/scheduled-jobs.md
       - Internals: reference/internals.md
   - More:
       - Docker Compose: alternatives/docker-compose.md
