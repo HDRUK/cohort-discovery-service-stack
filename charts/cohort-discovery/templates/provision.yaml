@@ -1,10 +1,12 @@
 {{- if and .Values.provision.enabled .Values.provision.json }}
-{{- if not .Values.keycloak.enabled }}
-{{- fail "provision signs in as bootstrap.adminEmail through Keycloak, so it needs keycloak.enabled, or set provision.enabled=false" }}
+{{- if not (include "cohort-discovery.ssoEnabled" .) }}
+{{- fail "provision signs in as bootstrap.adminEmail through Keycloak, so it needs keycloak.enabled or sso.issuer, or set provision.enabled=false" }}
 {{- end }}
 {{- $name := include "cohort-discovery.name" (dict "root" . "component" "provision") -}}
 {{- $api := include "cohort-discovery.name" (dict "root" . "component" "api") -}}
 {{- $keycloak := include "cohort-discovery.name" (dict "root" . "component" "keycloak") -}}
+{{- $adminPasswordKey := "admin-password" -}}
+{{- if .Values.keycloak.enabled }}
 {{- $admin := dict -}}
 {{- range .Values.keycloak.users }}
 {{- if eq (lower .email) (lower $.Values.bootstrap.adminEmail) }}{{ $admin = . }}{{ end }}
@@ -12,9 +14,21 @@
 {{- if not $admin }}
 {{- fail (printf "provision signs in as bootstrap.adminEmail (%s), which isn't in keycloak.users" .Values.bootstrap.adminEmail) }}
 {{- end }}
+{{- $adminPasswordKey = include "cohort-discovery.keycloakPasswordSecretKey" $admin.passwordKey -}}
+{{- end }}
 {{- $apiInCluster := printf "%s:%v" $api .Values.api.port -}}
 {{- $keycloakInCluster := printf "%s:%v" $keycloak .Values.keycloak.port -}}
-{{- $routes := list (printf "%s=%s" (urlParse .Values.api.appUrl).host $apiInCluster) (printf "%s=%s" (urlParse (include "cohort-discovery.keycloakUrl" .)).host $keycloakInCluster) -}}
+{{- $discoveryUrl := printf "%s/.well-known/openid-configuration" (include "cohort-discovery.ssoIssuer" .) -}}
+{{- if .Values.keycloak.enabled }}
+{{- $discoveryUrl = printf "http://%s/realms/cohort-discovery-service/.well-known/openid-configuration" $keycloakInCluster -}}
+{{- end }}
+{{- $routes := list -}}
+{{- if include "cohort-discovery.isLocalhost" .Values.api.appUrl }}
+{{- $routes = append $routes (printf "%s:%s=%s" (urlParse .Values.api.appUrl).hostname (include "cohort-discovery.urlPort" (dict "url" .Values.api.appUrl)) $apiInCluster) -}}
+{{- end }}
+{{- if and .Values.keycloak.enabled (include "cohort-discovery.isLocalhost" (include "cohort-discovery.keycloakUrl" .)) }}
+{{- $routes = append $routes (printf "%s:%s=%s" (urlParse (include "cohort-discovery.keycloakUrl" .)).hostname (include "cohort-discovery.urlPort" (dict "url" (include "cohort-discovery.keycloakUrl" .))) $keycloakInCluster) -}}
+{{- end }}
 {{- $files := dict "provision.py" (.Files.Get "files/provision/provision.py") "provision.json" .Values.provision.json -}}
 apiVersion: v1
 kind: ConfigMap
@@ -87,6 +101,10 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: {{ $name }}
+      {{- with .Values.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       initContainers:
         - name: wait-for-api-and-keycloak
           image: {{ include "cohort-discovery.image" .Values.images.curl }}
@@ -96,10 +114,12 @@ spec:
             - -c
             - |
               until curl --silent --fail --output /dev/null http://{{ $apiInCluster }}/api/status \
-                && curl --silent --fail --output /dev/null http://{{ $keycloakInCluster }}/realms/cohort-discovery-service/.well-known/openid-configuration; do
-                echo "Waiting for {{ $api }} and {{ $keycloak }}..."
+                && curl --silent --fail --output /dev/null {{ $discoveryUrl }}; do
+                echo "Waiting for {{ $api }} and {{ $discoveryUrl }}..."
                 sleep 5
               done
+          resources:
+            {{- toYaml .Values.waitResources | nindent 12 }}
       containers:
         - name: provision
           image: {{ include "cohort-discovery.image" .Values.images.python }}
@@ -116,7 +136,9 @@ spec:
               value: http://{{ $apiInCluster }}/api/v1
             - name: ADMIN_EMAIL
               value: {{ .Values.bootstrap.adminEmail | quote }}
-            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "ADMIN_PASSWORD" "key" (include "cohort-discovery.keycloakPasswordSecretKey" $admin.passwordKey)) | nindent 12 }}
+            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "ADMIN_PASSWORD" "key" $adminPasswordKey) | nindent 12 }}
+          resources:
+            {{- toYaml .Values.provision.resources | nindent 12 }}
           volumeMounts:
             - name: provision
               mountPath: /stack/provision

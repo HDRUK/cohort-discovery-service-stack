@@ -121,6 +121,8 @@ spec:
             - name: PGUSER
               value: postgres
             {{- include "cohort-discovery.secretEnv" (dict "root" $root "name" "PGPASSWORD" "key" "synthetic-db-password") | nindent 12 }}
+          resources:
+            {{- toYaml $root.Values.waitResources | nindent 12 }}
         - name: load-synthetic-data
           image: {{ include "cohort-discovery.image" $root.Values.images.omopLite }}
           imagePullPolicy: {{ $root.Values.imagePullPolicy }}
@@ -140,6 +142,8 @@ spec:
             - name: SYNTHETIC_NUMBER
               value: {{ .size | quote }}
             {{- include "cohort-discovery.secretEnv" (dict "root" $root "name" "DB_PASSWORD" "key" "synthetic-db-password") | nindent 12 }}
+          resources:
+            {{- toYaml $root.Values.synthetic.loadResources | nindent 12 }}
       containers:
         {{- range $taskType := list "a" "b" }}
         - name: bunny-{{ $taskType }}

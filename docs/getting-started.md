@@ -223,6 +223,75 @@ If you forward the API or the web to other host ports, set `api.appUrl` and `web
 
 `helm uninstall` deletes the MySQL and Keycloak volumes with everything else.
 
+## Install somewhere other than your laptop
+
+The same chart runs on a shared cluster. Two example files show the ends of the range, each passed with `-f` on top of `values.yaml`:
+
+| File | What |
+|---|---|
+| `charts/cohort-discovery/values.evaluation.yaml` | Everything bundled (MySQL, Redis, Keycloak, synthetic collections), behind an ingress with TLS |
+| `charts/cohort-discovery/values.production-like.yaml` | External MySQL, Redis and identity provider, secrets from an existing Secret, no synthetic collections or provisioning |
+
+Copy one, replace the `example.org` hosts, and install:
+
+```bash
+helm install cohort-discovery charts/cohort-discovery \
+  --namespace cohort-discovery --create-namespace \
+  -f my-values.yaml -f generated/customisations.values.yaml --timeout 15m
+```
+
+### URLs and ingress
+
+`web.appUrl`, `api.appUrl` and, with the bundled Keycloak, `keycloak.url` are the URLs people's browsers use. `ingress.enabled` routes each URL's host to its Service, with `ingress.className`, `ingress.annotations` and the usual `ingress.tls` list. An ingress with a bare `localhost` URL fails the render, but `*.localhost` hosts work, which is how to try the ingress on a laptop: `http://cds.localhost` and so on reach the ingress controller on port 80 with no DNS set up.
+
+Serve the stack over HTTPS. The web sets its sign-in cookie with `Secure`, which browsers only accept over HTTPS or on `localhost` ([web#245](https://github.com/HDRUK/cohort-discovery-service-web/issues/245)). Behind an ingress, Keycloak trusts the `X-Forwarded-*` headers.
+
+The API, the web server and the provision Job call these URLs from inside the cluster too, so their hosts must resolve there. With `localhost` and `*.localhost` URLs the chart handles this with socat sidecars listening on the URL's port, as under Tilt, and maps `*.localhost` names to `127.0.0.1` in the pods. The PHP and curl clients always send `*.localhost` to loopback and ignore host entries, so nothing else would work for them. Other hosts need DNS that works in the cluster, or `hostAliases` pointing them at the ingress controller:
+
+```yaml
+hostAliases:
+  - ip: 10.43.0.10
+    hostnames: [cds.example.org, api.cds.example.org, auth.cds.example.org]
+```
+
+The web image is built for one API URL (`NEXT_PUBLIC_TASK_URL`, shown to custodians as the address for their BUNNY), so build it with `scripts/build-web.sh` and your `api.appUrl` until W4 makes that a run-time setting.
+
+### External MySQL and Redis
+
+With `mysql.enabled=false`, set `mysql.host` and `mysql.port`. The user `mysql.username`, with the `mysql-password` key, needs all privileges on both `mysql.appDatabase` and `mysql.omopDatabase`, which must exist. For the full vocabulary import, the server needs `local_infile=1`.
+
+With `redis.enabled=false`, set `redis.host` and `redis.port`. If it needs a password, set `redis.auth=true` and add the `redis-password` key.
+
+### Uploaded files
+
+The API saves the files BUNNYs upload (distribution results) to `storage/app/private`, and the queue pod reads them back. The two run as separate Deployments, so that folder is a shared volume, `<release>-api-storage`, set by `api.storageSize`, `api.storageClassName` and `api.storageAccessMode`. `ReadWriteOnce`, the default, only works while both pods run on the same node, which is always true on a one-node cluster. On a cluster with more nodes, set `api.storageAccessMode=ReadWriteMany` and a storage class that supports it, such as NFS, EFS or Filestore.
+
+### External identity provider
+
+With `keycloak.enabled=false`, set `sso.issuer` (the OIDC issuer URL), `sso.clientId` and the `sso-client-secret` key. Register `<api.appUrl>/api/auth/sso/default/callback` as the client's redirect URI and `<web.appUrl>/login` as its post-logout redirect. The claims mapping (`customisations/api/claimsaccesscontrol.php`) must match the provider's `groups` and `roles` claims. `bootstrap.adminEmail` must be a user there, with a verified email.
+
+The provision Job signs in through Keycloak's login form (D22). It works with an external Keycloak, using the `admin-password` key as the admin's Keycloak password. With any other provider, set `provision.enabled=false` and create collections in the app.
+
+### Secrets
+
+`scripts/local-secrets.sh` writes every secret into `generated/secrets.values.yaml`, and the chart turns them into a Secret. Elsewhere, create the Secret yourself and name it in `secrets.existingSecret`; the chart then renders no Secret. It needs these keys:
+
+| Key | When |
+|---|---|
+| `app-key` (`base64:` and 32 random bytes), `jwt-secret`, `collection-hosts-key-salt-1`, `collection-hosts-key-salt-2` | Always |
+| `passport-private-key`, `passport-public-key` | Always: an RSA key pair, PEM |
+| `admin-password`, `scheduler-client-id` (a UUID), `scheduler-client-secret` | Always |
+| `mysql-password` | Always |
+| `mysql-root-password` | Bundled MySQL |
+| `redis-password` | `redis.auth=true` |
+| `keycloak-admin-password`, `keycloak-client-secret`, and `keycloak-user-<passwordKey>` for each `keycloak.users` entry | Bundled Keycloak |
+| `sso-client-secret` | External identity provider |
+| `synthetic-db-password` | Synthetic collections |
+
+### Resources
+
+Every container has requests and a memory limit, set in values (`*.resources`, plus `waitResources` for the init containers, `init.resources`, `provision.resources` and `scheduler.resources`). There are no CPU limits: throttling slows the API's and NLP's start-up without protecting the node, and the requests already reserve CPU. The `vocab-import` Job allows 4Gi, because the importer raises PHP's memory limit for large tables.
+
 ## What the init Job does
 
 `api-init` runs `charts/cohort-discovery/files/api-init/api-init.sh` in the API image. Each step is safe to repeat:
@@ -330,7 +399,12 @@ kubectl -n cohort-discovery logs job/task-cleanup-now
 | `images.*` | Image repositories and pinned tags |
 | `bootstrap.adminEmail`, `bootstrap.custodianName` | The seeded admin and custodian, used only when `users` is empty. The admin signs in through Keycloak, so it must also be in `keycloak.users` |
 | `api.appUrl`, `web.appUrl` | The API and web URLs as the browser sees them; SSO redirects are built from them |
-| `keycloak.enabled`, `keycloak.port` | Keycloak and SSO on or off, and its port (inside the cluster and on the host) |
+| `keycloak.enabled`, `keycloak.port`, `keycloak.url` | The bundled Keycloak on or off, its port (inside the cluster and on the host), and its browser URL (default `http://localhost:<port>`) |
+| `sso.issuer`, `sso.clientId` | An external OIDC provider, used when `keycloak.enabled=false` (see [External identity provider](#external-identity-provider)) |
+| `mysql.enabled`, `mysql.host`, `mysql.port`, `redis.enabled`, `redis.host`, `redis.port`, `redis.auth` | Bundled or external data stores (see [External MySQL and Redis](#external-mysql-and-redis)) |
+| `api.storageSize`, `api.storageClassName`, `api.storageAccessMode` | The volume the API and queue share for uploaded files (see [Uploaded files](#uploaded-files)) |
+| `ingress.*`, `hostAliases` | Ingress, and host entries for clusters that can't resolve the public hostnames (see [URLs and ingress](#urls-and-ingress)) |
+| `*.resources`, `waitResources` | Requests and memory limits (see [Resources](#resources)) |
 | `keycloak.groups`, `keycloak.roles`, `keycloak.users` | The realm's groups, realm roles and users; passwords are named by `passwordKey` and live in the secrets file |
 | `keycloak.realmJson`, `api.claimsAccessControlPhp`, `nlp.rulesJson`, `nlp.mappingsJson`, `provision.json` | Set only by `generated/customisations.values.yaml`, from `customisations/` (see [Customisations](#customisations)) |
 | `api.extraEnv`, `nlp.extraEnv`, `web.extraEnv` | Extra non-secret environment variables |
@@ -340,7 +414,7 @@ kubectl -n cohort-discovery logs job/task-cleanup-now
 | `synthetic.bunny.*` | BUNNY polling interval, low-number suppression and rounding |
 | `synthetic.storageSize`, `synthetic.storageClassName`, `synthetic.resources`, `synthetic.bunnyResources` | The synthetic Postgres's volume, and resources |
 | `scheduler.*` | Scheduled jobs |
-| `secrets.*` | Set only by `generated/secrets.values.yaml`; never in `values.yaml` |
+| `secrets.*` | Set only by `generated/secrets.values.yaml`; never in `values.yaml`. `secrets.existingSecret` names a Secret to use instead (see [Secrets](#secrets)) |
 
 ## Customisations
 

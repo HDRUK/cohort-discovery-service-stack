@@ -1,0 +1,41 @@
+{{- if .Values.ingress.enabled }}
+{{- $routes := list (dict "url" .Values.web.appUrl "component" "web" "port" .Values.web.port) (dict "url" .Values.api.appUrl "component" "api" "port" .Values.api.port) -}}
+{{- if .Values.keycloak.enabled }}
+{{- $routes = append $routes (dict "url" (include "cohort-discovery.keycloakUrl" .) "component" "keycloak" "port" .Values.keycloak.port) -}}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "cohort-discovery.name" (dict "root" . "component" "ingress") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "ingress") | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range $routes }}
+    {{- if eq (urlParse .url).hostname "localhost" }}
+    {{- fail (printf "ingress.enabled needs a hostname other than localhost, but the %s URL is %s. Set web.appUrl, api.appUrl and keycloak.url; *.localhost names work on a local cluster" .component .url) }}
+    {{- end }}
+    - host: {{ (urlParse .url).hostname }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "cohort-discovery.name" (dict "root" $ "component" .component) }}
+                port:
+                  number: {{ .port }}
+    {{- end }}
+{{- end }}

@@ -1,6 +1,9 @@
+import http.cookiejar
+import urllib.parse
 import pathlib
 import sys
 import unittest
+import urllib.request
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "charts/cohort-discovery/files/provision"))
@@ -102,6 +105,24 @@ class DistributionSchedules(unittest.TestCase):
         ])
 
         self.assertEqual(len(api.posts_to("/v1/collection_config")), 2)
+
+
+
+class SecureCookiesOnLocalhost(unittest.TestCase):
+    def secure_cookie_sent(self, url):
+        cookie = http.cookiejar.Cookie(
+            0, "KC_RESTART", "value", None, False, urllib.parse.urlparse(url).hostname, False, False,
+            "/", True, True, None, False, None, None, {},
+        )
+        return provision.LocalhostIsSecureContext().return_ok_secure(cookie, urllib.request.Request(url))
+
+    def test_localhost_and_its_subdomains_are_secure_contexts(self):
+        self.assertTrue(self.secure_cookie_sent("http://localhost:8180/realms/x"))
+        self.assertTrue(self.secure_cookie_sent("http://auth.cds.localhost/realms/x"))
+
+    def test_other_plain_http_hosts_are_not(self):
+        self.assertFalse(self.secure_cookie_sent("http://auth.example.org/realms/x"))
+        self.assertFalse(self.secure_cookie_sent("http://notlocalhost/realms/x"))
 
 
 if __name__ == "__main__":

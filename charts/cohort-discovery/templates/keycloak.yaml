@@ -96,6 +96,10 @@ spec:
               value: {{ .Values.keycloak.port | quote }}
             - name: KC_HOSTNAME
               value: {{ include "cohort-discovery.keycloakUrl" . | quote }}
+            {{- if or .Values.ingress.enabled (not (include "cohort-discovery.isLocalhost" (include "cohort-discovery.keycloakUrl" .))) }}
+            - name: KC_PROXY_HEADERS
+              value: xforwarded
+            {{- end }}
             - name: KC_HEALTH_ENABLED
               value: "true"
             - name: KC_BOOTSTRAP_ADMIN_USERNAME

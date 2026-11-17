@@ -21,7 +21,7 @@ HDR UK's own dev, preprod and prod deployments are separate and must keep workin
 
 ## Status
 
-Planning, S0 (scaffold), S1 (Helm core and Tilt), S4 (provisioner) and S8 (branding) are done; S2 (Keycloak) is in review. The plan is in `docs/`:
+Planning, S0 (scaffold), S1 (Helm core and Tilt), S2 (Keycloak), S3 (vocabulary), S4 (provisioner), S5 (synthetic BUNNYs) and S8 (branding) are done; S6 (non-local installs) is in review. The plan is in `docs/`:
 
 | File | What |
 |---|---|

@@ -1,3 +1,4 @@
+{{- if .Values.redis.enabled }}
 {{- $name := include "cohort-discovery.name" (dict "root" . "component" "redis") -}}
 apiVersion: v1
 kind: Service
@@ -46,3 +47,4 @@ spec:
             periodSeconds: 5
           resources:
             {{- toYaml .Values.redis.resources | nindent 12 }}
+{{- end }}

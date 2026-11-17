@@ -32,6 +32,9 @@ spec:
       labels:
         {{- include "cohort-discovery.labels" (dict "root" . "component" "web") | nindent 8 }}
     spec:
+      {{- with include "cohort-discovery.podHostAliases" (dict "root" . "urls" (ternary (list .Values.api.appUrl) list (eq (include "cohort-discovery.ssoEnabled" .) "true"))) }}
+      {{- . | nindent 6 }}
+      {{- end }}
       initContainers:
         - name: wait-for-api
           image: {{ include "cohort-discovery.image" .Values.images.curl }}
@@ -40,6 +43,8 @@ spec:
             - sh
             - -c
             - until curl --silent --fail --output /dev/null {{ $apiUrl }}/up; do echo "Waiting for {{ $apiUrl }}..."; sleep 5; done
+          resources:
+            {{- toYaml .Values.waitResources | nindent 12 }}
       containers:
         - name: web
           image: {{ include "cohort-discovery.image" .Values.images.web }}
@@ -50,7 +55,7 @@ spec:
             - name: APPLICATION_MODE
               value: standalone
             - name: API_BASE_URL
-              value: {{ if .Values.keycloak.enabled }}{{ .Values.api.appUrl }}{{ else }}{{ $apiUrl }}{{ end }}
+              value: {{ if include "cohort-discovery.ssoEnabled" . }}{{ .Values.api.appUrl }}{{ else }}{{ $apiUrl }}{{ end }}
             - name: COOKIE_TOKEN_NAME
               value: {{ .Values.web.cookieTokenName | quote }}
             {{- range $key, $value := .Values.web.extraEnv }}
@@ -75,6 +80,6 @@ spec:
             timeoutSeconds: 5
           resources:
             {{- toYaml .Values.web.resources | nindent 12 }}
-        {{- if .Values.keycloak.enabled }}
+        {{- if and (include "cohort-discovery.ssoEnabled" .) (include "cohort-discovery.isLocalhost" .Values.api.appUrl) }}
         {{- include "cohort-discovery.localhostForward" (dict "root" . "name" "api-forward" "listenPort" (include "cohort-discovery.urlPort" (dict "name" "api.appUrl" "url" .Values.api.appUrl)) "target" (printf "%s:%v" (include "cohort-discovery.name" (dict "root" . "component" "api")) .Values.api.port)) | nindent 8 }}
         {{- end }}

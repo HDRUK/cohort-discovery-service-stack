@@ -2,7 +2,7 @@
 
 > **AI disclosure:** Drafted with Claude Code on 2026-11-11 from a read of `project-daphne-web`, `project-daphne-api`, `project-daphne-nlp`, `somop`, `project-daphne-bunny-config`, `cohort-discovery-service-evaluator` and `cohort-discovery-service-docs`.
 
-**Status:** plan written. Decisions D1–D6, D9–D13, D15–D17 and D20–D22 are agreed; the rest are open. S0, S1, S4 and S8 are done; S2 is in review.
+**Status:** plan written. Decisions D1–D6, D9–D13, D15–D17 and D20–D22 are agreed; the rest are open. S0–S5 and S8 are done; S6 is in review.
 
 ## Aims
 
@@ -58,11 +58,11 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [N1](tickets/N1-nlp-image-and-config.md) | nlp | Publish the image, document the mounts | D2 | todo |
 | [S0](tickets/S0-stack-scaffold.md) | stack | Scaffold: submodules, chart and Tiltfile skeletons, `config/` layout | D5 | done |
 | [S1](tickets/S1-stack-helm-core.md) | stack | Helm core and Tilt: data stores, services, init, scheduler | S0 | done |
-| [S2](tickets/S2-stack-keycloak.md) | stack | Throwaway Keycloak in the chart, wired as SSO, with the claims mapping mounted (D9) | S1 | in review |
-| [S3](tickets/S3-stack-omop-vocabulary.md) | stack | OMOP vocabulary: minimal default and optional Athena import Job | S1 | in review |
+| [S2](tickets/S2-stack-keycloak.md) | stack | Throwaway Keycloak in the chart, wired as SSO, with the claims mapping mounted (D9) | S1 | done |
+| [S3](tickets/S3-stack-omop-vocabulary.md) | stack | OMOP vocabulary: minimal default and optional Athena import Job | S1 | done |
 | [S4](tickets/S4-stack-provisioner.md) | stack | Provisioner: custodians, hosts and collections through the API, shared with workgroups and made active | S1, S2, D22 | done |
-| [S5](tickets/S5-stack-synthetic-bunnies.md) | stack | A synthetic database and BUNNY for each synthetic collection in `provision.json`, set up automatically | S4, D16 | in review |
-| [S6](tickets/S6-stack-non-local-installs.md) | stack | Non-local installs: ingress, external stores, example values | S1–S5 | todo |
+| [S5](tickets/S5-stack-synthetic-bunnies.md) | stack | A synthetic database and BUNNY for each synthetic collection in `provision.json`, set up automatically | S4, D16 | done |
+| [S6](tickets/S6-stack-non-local-installs.md) | stack | Non-local installs: ingress, external stores, example values | S1–S5 | in review |
 | [S7](tickets/S7-stack-ci-build-and-deploy.md) | stack | CI: build from any ref, push to GHCR, deploy | S1, D14 | todo |
 | [S8](tickets/S8-stack-branding-overlay.md) | stack | "Feasibility Tool" neutral branding in `config/branding/`, and the D6 build script used by Tilt | D6 | done |
 
