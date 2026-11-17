@@ -28,7 +28,7 @@ Tilt only runs against a local cluster, so it can't deploy to a shared one by mi
 
 ### A port is already in use
 
-Something else is on 3000, 8100, 5001 or 8180. Stop it, or move the stack with the `CDS_*_PORT` variables in [Host ports](getting-started.md#host-ports).
+Something else is on 3000, 8100, 5001 or 8180. Stop it, or move the stack to other ports in `tilt_config.json`, as in [Host ports](getting-started.md#host-ports).
 
 ### Pods are `OOMKilled` or evicted
 
@@ -64,7 +64,7 @@ The API, queue and NLP wait until `api-init` has finished. Check its log (above)
 
 ### "Single Sign-On" fails or loops
 
-The browser and the API must reach the identity provider at the same URL. Under Tilt, change ports only with the `CDS_*` variables, so everything moves together. Changes to Keycloak's ports, users or passwords need a [realm re-import](customising/identity-and-access.md#re-import-the-realm). The service docs list what each [sign-in error](https://hdruk.github.io/cohort-discovery-service-docs/developers/deploying/reference/login-errors/) means.
+The browser and the API must reach the identity provider at the same URL. Under Tilt, change ports only through the [Tilt settings](getting-started.md#host-ports), so everything moves together. Changes to Keycloak's ports, users or passwords need a [realm re-import](customising/identity-and-access.md#re-import-the-realm). The service docs list what each [sign-in error](https://hdruk.github.io/cohort-discovery-service-docs/developers/deploying/reference/login-errors/) means.
 
 ### Sign-in works locally but not on the cluster
 

@@ -89,14 +89,27 @@ If no collections appear, or queries never finish, see the [FAQ](faq.md).
 
 ## Host ports
 
-To run beside a development stack that already uses 3000, 8100 and 5001, choose other host ports before `tilt up`:
+To run beside a development stack that already uses 3000, 8100 and 5001, choose other host ports in a `tilt_config.json` beside the `Tiltfile`. Git ignores the file, so your ports stay on your machine. Leave out any you don't want to change:
 
-```bash
-export CDS_WEB_PORT=13000 CDS_API_PORT=18100 CDS_NLP_PORT=15001 CDS_KEYCLOAK_PORT=18180
-tilt up
+```json title="tilt_config.json"
+{
+  "web-port": "13000",
+  "api-port": "18100",
+  "nlp-port": "15001",
+  "keycloak-port": "18180"
+}
 ```
 
-Use the same ports in the URLs above. Changing `CDS_API_PORT` also rebuilds the web image, because the task URL the web shows custodians is built in.
+Ports are strings, in quotes. Tilt reloads when you save the file, so this works while the stack is running too. For a one-off, pass them as flags instead, which win over the file:
+
+```bash
+tilt up -- --api-port=18100
+tilt args -- --api-port=18100    # while Tilt is already running
+```
+
+Use the same ports in the URLs above. Changing the API port also rebuilds the web image, because the task URL the web shows custodians is built in. Changing the Keycloak port on a kept volume needs a [realm re-import](customising/identity-and-access.md#re-import-the-realm).
+
+The older `CDS_WEB_PORT`, `CDS_API_PORT`, `CDS_NLP_PORT`, `CDS_KEYCLOAK_PORT` and `CDS_KEYCLOAK_ENABLED` environment variables still work, but a flag or `tilt_config.json` wins over them.
 
 Browsers share cookies across ports on the same host, so the stack's web app names its sign-in cookie `cds_stack_token` rather than the default `token`. A development web app on `localhost` and the stack can then both be signed in at once.
 
@@ -106,8 +119,10 @@ The web, API and NLP source is in `services/`, pinned to releases. Make changes 
 
 ## Without Keycloak
 
+Add `"keycloak": false` to `tilt_config.json`, or for a one-off:
+
 ```bash
-CDS_KEYCLOAK_ENABLED=false tilt up
+tilt up -- --keycloak=false
 ```
 
 Single sign-on is then off, the API offers email and password sign-in again (as `admin@example.com` with the admin password), and the provision Job and synthetic collections are off too, because the Job signs in through Keycloak.

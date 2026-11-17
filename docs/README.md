@@ -68,6 +68,7 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [S9](tickets/S9-stack-user-docs.md) | stack | User docs: a short README, sectioned docs, an MkDocs site | S6 | done |
 | [S10](tickets/S10-stack-docs-restructure.md) | stack | Restructure the user docs after review: one place to read, deploy order, connecting real BUNNYs, one diagram, links to the service docs | S9 | in review |
 | [S11](tickets/S11-stack-cluster-readiness.md) | stack | Chart gaps for real clusters: Keycloak `start-dev`, `imagePullSecrets`, vocabulary import from a volume, volumes on uninstall. Found in S10 | S6 | todo |
+| [S12](tickets/S12-stack-tilt-settings.md) | stack | Tilt settings (host ports, Keycloak on or off) in a git-ignored `tilt_config.json` or flags, instead of exported env vars | S1 | in review |
 | [SD1](tickets/SD1-service-docs-link-to-stack.md) | service docs | Link the general service docs to the stack, and fix their out-of-date pages. Found in S10 | S10 | todo |
 
 ## Suggested order

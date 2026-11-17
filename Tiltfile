@@ -27,11 +27,24 @@ SECRETS_VALUES = 'generated/secrets.values.yaml'
 CUSTOMISATIONS_VALUES = 'generated/customisations.values.yaml'
 CHART_CUSTOMISATIONS = ['customisations/api', 'customisations/keycloak', 'customisations/nlp']
 
-WEB_HOST_PORT = str(int(os.getenv('CDS_WEB_PORT', '3000')))
-API_HOST_PORT = str(int(os.getenv('CDS_API_PORT', '8100')))
-NLP_HOST_PORT = str(int(os.getenv('CDS_NLP_PORT', '5001')))
-KEYCLOAK_HOST_PORT = str(int(os.getenv('CDS_KEYCLOAK_PORT', '8180')))
-KEYCLOAK_ENABLED = os.getenv('CDS_KEYCLOAK_ENABLED', 'true') != 'false'
+config.define_string('web-port')
+config.define_string('api-port')
+config.define_string('nlp-port')
+config.define_string('keycloak-port')
+config.define_bool('keycloak')
+SETTINGS = config.parse()
+
+def host_port(name, env, default):
+    value = SETTINGS.get(name, os.getenv(env, default))
+    if not value.isdigit():
+        fail('%s (or %s) must be a port number, got "%s"' % (name, env, value))
+    return str(int(value))
+
+WEB_HOST_PORT = host_port('web-port', 'CDS_WEB_PORT', '3000')
+API_HOST_PORT = host_port('api-port', 'CDS_API_PORT', '8100')
+NLP_HOST_PORT = host_port('nlp-port', 'CDS_NLP_PORT', '5001')
+KEYCLOAK_HOST_PORT = host_port('keycloak-port', 'CDS_KEYCLOAK_PORT', '8180')
+KEYCLOAK_ENABLED = SETTINGS.get('keycloak', os.getenv('CDS_KEYCLOAK_ENABLED', 'true') != 'false')
 ATHENA_CUSTOMISATION = 'customisations/athena'
 ATHENA_PATH = os.path.abspath(ATHENA_CUSTOMISATION) if os.path.exists(ATHENA_CUSTOMISATION + '/VOCABULARY.csv') else ''
 API_HOST_URL = 'http://localhost:' + API_HOST_PORT

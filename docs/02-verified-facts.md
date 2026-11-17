@@ -225,6 +225,11 @@ Read from api `b257363` and nlp `v1.9.1`; the import itself is not yet run on a 
 - **`values.evaluation.yaml` doesn't set `existingSecret`,** so installing with it needs `-f generated/secrets.values.yaml` or a Secret.
 - **The general service docs (`cohort-discovery-service-docs`) don't know the stack exists,** and describe a workgroup as taking one IdP value, though `ClaimResolver` accepts lists. Tracked as SD1.
 
+## Learnt moving the Tilt settings (S12, 2026-11-17)
+
+- **Tilt's `config.define_*` settings come from `tilt_config.json` and from arguments after `--`**, and flags win over the file (v0.33.14). `config.define_string` needs strings, so ports go in quotes in the file. Without any `config.define_*`, Tilt reads arguments after `--` as resource names, so `tilt up -- --api-port=…` failed before S12 with "resources that could not be found".
+- **`tilt alpha tiltfile-result -- <flags>` evaluates the Tiltfile without starting anything**, and the port forwards are under `Manifests[].DeployTarget.portForwardTemplateSpec.forwards`. Its JSON also has a top-level `Secrets` field holding every generated credential, so never print the whole result or its keys.
+
 ## Prior art to reuse
 
 - `cohort-discovery-service-evaluator/compose.yaml`: mysql (with `init/mysql/01-omop.sql`), `api-init` (`init/api-init.sh`), nlp and api in standalone mode, with mounted Passport keys. It has no web and no Keycloak.
