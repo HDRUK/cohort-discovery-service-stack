@@ -45,6 +45,7 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [A3](tickets/A3-api-claims-mapping-file.md) | api | ~~Claims mapping from a mounted file~~ Not needed: D9 mounts a replacement config file instead, in S2 | D9 | not needed |
 | [A4](tickets/A4-api-externally-managed-access.md) | api | Externally managed access: flag, write guard, exposed to web | D8 | todo |
 | A5 | api | Stop logging request bodies (passwords reach the logs), and enforce retention on `request_audits`, `activity_log` and `nlp_query_logs`. Found in H1, see [personal data inventory](data-protection/personal-data-inventory.md) | – | on hold |
+| [A10](tickets/A10-api-feature-flag-defaults-file.md) | api | Feature flag defaults from `config/features.php`, so the stack sets them in `customisations/api/features.php` | – | todo |
 | [A6](tickets/A6-api-sso-custodian-provisioning.md) | api | Create custodians from SSO claims, behind a setting, as integrated mode already does. Found in S2 | – | todo |
 | [A7](tickets/A7-api-missing-claim-authoritative.md) | api | Under an authoritative sync, treat a missing groups claim as empty, so removing a user's last group removes their workgroups (D20). Found in S2 | – | todo |
 | [A8](tickets/A8-api-many-to-one-claim-mapping.md) | api | Map several IdP groups or roles to one workgroup or role, e.g. `ukri`, `breathe` and `ncs` to `UK-RESEARCH`. Found in S2. Done on branch `feat/DP-1254-many-to-one-claim-mapping`, which also adds `config/workgroups.php`; the stack is pinned to it | – | in review (DP-1254) |
