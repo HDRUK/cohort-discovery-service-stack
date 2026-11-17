@@ -17,8 +17,8 @@ data:
   LOG_CHANNEL: stderr
   LOG_LEVEL: {{ .Values.api.logLevel | quote }}
   DB_CONNECTION: mysql
-  DB_HOST: {{ include "cohort-discovery.name" (dict "root" . "component" "mysql") }}
-  DB_PORT: "3306"
+  DB_HOST: {{ include "cohort-discovery.mysqlHost" . }}
+  DB_PORT: {{ .Values.mysql.port | quote }}
   DB_DATABASE: {{ .Values.mysql.appDatabase | quote }}
   DB_USERNAME: {{ .Values.mysql.username | quote }}
   DB_OMOP_DATABASE: {{ .Values.mysql.omopDatabase | quote }}
@@ -26,12 +26,12 @@ data:
   CACHE_STORE: redis
   SESSION_DRIVER: redis
   REDIS_CLIENT: phpredis
-  REDIS_HOST: {{ include "cohort-discovery.name" (dict "root" . "component" "redis") }}
-  REDIS_PORT: "6379"
+  REDIS_HOST: {{ include "cohort-discovery.redisHost" . }}
+  REDIS_PORT: {{ .Values.redis.port | quote }}
   COHORT_DISCOVER_NLP_SERVICE_BASE_URI: http://{{ include "cohort-discovery.name" (dict "root" . "component" "nlp") }}:{{ .Values.nlp.port }}
   AUTH_PASSWORD_LOGIN_ENABLED: "true"
   STANDALONE_JWT_TTL_MINUTES: {{ .Values.api.standaloneJwtTtlMinutes | quote }}
-  {{- if .Values.keycloak.enabled }}
+  {{- if include "cohort-discovery.ssoEnabled" . }}
   SSO_ENABLED: "true"
   SSO_FRONTEND_CALLBACK_URL: {{ printf "%s/auth/sso/callback" .Values.web.appUrl | quote }}
   SSO_FRONTEND_ERROR_URL: {{ printf "%s/auth/sso/error" .Values.web.appUrl | quote }}
@@ -39,8 +39,8 @@ data:
   SSO_DISCOVERY_CACHE_TTL_SECONDS: "60"
   SSO_JWKS_CACHE_TTL_SECONDS: "60"
   SSO_DEFAULT_ENABLED: "true"
-  SSO_DEFAULT_ISSUER: {{ include "cohort-discovery.keycloakIssuer" . | quote }}
-  SSO_DEFAULT_CLIENT_ID: {{ include "cohort-discovery.keycloakClientId" . | quote }}
+  SSO_DEFAULT_ISSUER: {{ include "cohort-discovery.ssoIssuer" . | quote }}
+  SSO_DEFAULT_CLIENT_ID: {{ include "cohort-discovery.ssoClientId" . | quote }}
   SSO_DEFAULT_REDIRECT_URI: {{ printf "%s/api/auth/sso/default/callback" .Values.api.appUrl | quote }}
   SSO_DEFAULT_WORKGROUPS_CLAIM: groups
   SSO_DEFAULT_ROLES_CLAIM: roles

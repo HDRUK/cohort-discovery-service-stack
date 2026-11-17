@@ -53,6 +53,10 @@ spec:
       annotations:
         checksum/nlp-config: {{ printf "%s%s" .Values.nlp.rulesJson .Values.nlp.mappingsJson | sha256sum }}
     spec:
+      {{- with .Values.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       initContainers:
         {{- include "cohort-discovery.waitForBootstrap" . | nindent 8 }}
       containers:
@@ -67,9 +71,9 @@ spec:
             - name: LOG_LEVEL
               value: {{ .Values.nlp.logLevel | quote }}
             - name: DB_HOST
-              value: {{ include "cohort-discovery.name" (dict "root" . "component" "mysql") }}
+              value: {{ include "cohort-discovery.mysqlHost" . }}
             - name: DB_PORT
-              value: "3306"
+              value: {{ .Values.mysql.port | quote }}
             - name: DB_NAME
               value: {{ .Values.mysql.appDatabase | quote }}
             - name: OMOP_DB_NAME

@@ -33,7 +33,8 @@ class KeepRedirects(urllib.request.HTTPRedirectHandler):
 
 class LocalhostIsSecureContext(http.cookiejar.DefaultCookiePolicy):
     def return_ok_secure(self, cookie, request):
-        return urllib.parse.urlparse(request.full_url).hostname == "localhost" or super().return_ok_secure(cookie, request)
+        hostname = urllib.parse.urlparse(request.full_url).hostname or ""
+        return hostname == "localhost" or hostname.endswith(".localhost") or super().return_ok_secure(cookie, request)
 
 
 def log(message):

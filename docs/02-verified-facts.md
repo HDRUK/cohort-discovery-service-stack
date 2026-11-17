@@ -201,6 +201,14 @@ Read from api `b257363` and nlp `v1.9.1`; the import itself is not yet run on a 
 - **`concepts:populate-ancestors`** only dispatches `PopulateLocalConceptAncestors`, which fills `local_concept_ancestors` from `concept_ancestor` for concepts that already have distributions. With no distributions it does nothing.
 - **NLP doesn't need a restart after an import.** It loads its concept list from `latest_distributions` in the app DB, not the vocabulary, and reloads every `STORE_REFRESH_TTL` (300 seconds) when a fingerprint changes. The fingerprint includes the row counts of `concept_synonym` and `concept_ancestor` (`min_levels_of_separation = 1`) in the vocabulary DB, so an import is picked up on the next refresh.
 
+## Learnt installing beyond a laptop (S6, 2026-11-17)
+
+- **curl sends `*.localhost` to loopback, whatever DNS or `/etc/hosts` say** (RFC 6761). The API's Guzzle calls and the provisioner's PHP and curl requests to `http://auth.cds.localhost` reached `127.0.0.1` inside the pod even with a `hostAliases` entry pointing elsewhere. The chart therefore treats `*.localhost` like `localhost`: socat sidecars on the URL's port, plus `127.0.0.1` host entries for clients that do use them.
+- **The API and queue need shared storage for uploads.** `TaskController` stores a BUNNY's `.distribution` file on the default `local` disk (`storage/app/private`) and dispatches `ProcessDistributionFile`, which reads it back on Horizon. Since S1 put Horizon in its own Deployment, every distribution job failed with `Cannot open <uuid>-code.distribution`, leaving `distributions` empty under Tilt too. A `ReadWriteOnce` PVC mounted in both pods fixed it: on `cds-eval` the next runs produced 399 `distributions` rows. The API offers only `local` and `gcs` disks.
+- **Rancher Desktop's 4 CPUs fit one stack's requests, not two.** A second install stayed `Pending` on "Insufficient cpu" until its requests were cut to 10m for the test.
+- **Helm hook Jobs survive `helm uninstall`.** A leftover `api-init` Job has to be deleted by hand before installing the same release name again.
+- **Traefik on Rancher Desktop serves `*.localhost` ingress hosts on port 80 of the Mac**, so an ingress test needs no DNS or `/etc/hosts` changes, and browsers treat those hosts as secure contexts, so the `Secure` sign-in cookie works over http.
+
 ## Prior art to reuse
 
 - `cohort-discovery-service-evaluator/compose.yaml`: mysql (with `init/mysql/01-omop.sql`), `api-init` (`init/api-init.sh`), nlp and api in standalone mode, with mounted Passport keys. It has no web and no Keycloak.

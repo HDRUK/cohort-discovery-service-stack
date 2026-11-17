@@ -1,5 +1,14 @@
 imagePullPolicy: IfNotPresent
 
+hostAliases: []
+
+waitResources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    memory: 64Mi
+
 images:
   api:
     repository: ghcr.io/hdruk/cohort-discovery-api
@@ -39,6 +48,9 @@ images:
     tag: 1.9.8
 
 mysql:
+  enabled: true
+  host: ""
+  port: 3306
   appDatabase: cohort_discovery
   omopDatabase: omop
   username: cohort_discovery
@@ -48,12 +60,20 @@ mysql:
     requests:
       cpu: 250m
       memory: 512Mi
+    limits:
+      memory: 2Gi
 
 redis:
+  enabled: true
+  host: ""
+  port: 6379
+  auth: false
   resources:
     requests:
       cpu: 50m
       memory: 64Mi
+    limits:
+      memory: 256Mi
 
 api:
   port: 8100
@@ -65,16 +85,23 @@ api:
   claimsAccessControlPhp: ""
   workgroupsPhp: ""
   extraEnv: {}
+  storageSize: 5Gi
+  storageClassName: ""
+  storageAccessMode: ReadWriteOnce
   resources:
     requests:
       cpu: 250m
       memory: 512Mi
+    limits:
+      memory: 1536Mi
 
 queue:
   resources:
     requests:
       cpu: 100m
       memory: 256Mi
+    limits:
+      memory: 1Gi
 
 nlp:
   port: 5001
@@ -87,6 +114,8 @@ nlp:
     requests:
       cpu: 250m
       memory: 512Mi
+    limits:
+      memory: 2Gi
 
 web:
   port: 3000
@@ -97,10 +126,13 @@ web:
     requests:
       cpu: 100m
       memory: 256Mi
+    limits:
+      memory: 768Mi
 
 keycloak:
   enabled: true
   port: 8180
+  url: ""
   realmJson: ""
   themeFiles: {}
   roles:
@@ -149,12 +181,34 @@ keycloak:
     requests:
       cpu: 250m
       memory: 768Mi
+    limits:
+      memory: 1536Mi
+
+sso:
+  issuer: ""
+  clientId: ""
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  tls: []
+
+init:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
 
 socat:
   resources:
     requests:
       cpu: 10m
       memory: 16Mi
+    limits:
+      memory: 32Mi
 
 bootstrap:
   adminEmail: admin@example.com
@@ -163,6 +217,12 @@ bootstrap:
 provision:
   enabled: true
   json: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
 
 vocab:
   athena:
@@ -171,6 +231,8 @@ vocab:
     requests:
       cpu: 500m
       memory: 1Gi
+    limits:
+      memory: 4Gi
 
 synthetic:
   enabled: true
@@ -185,14 +247,30 @@ synthetic:
     requests:
       cpu: 100m
       memory: 256Mi
+    limits:
+      memory: 1Gi
   bunnyResources:
     requests:
       cpu: 50m
       memory: 256Mi
+    limits:
+      memory: 512Mi
+  loadResources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
 
 scheduler:
   enabled: true
   serviceAccountName: scheduler
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      memory: 64Mi
   timeZone: Etc/UTC
   jobs:
     distributions-collector: "* * * * *"

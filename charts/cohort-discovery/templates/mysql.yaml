@@ -1,3 +1,4 @@
+{{- if .Values.mysql.enabled }}
 {{- $name := include "cohort-discovery.name" (dict "root" . "component" "mysql") -}}
 apiVersion: v1
 kind: ConfigMap
@@ -105,3 +106,4 @@ spec:
         - name: initdb
           configMap:
             name: {{ $name }}-initdb
+{{- end }}

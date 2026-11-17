@@ -1,0 +1,46 @@
+web:
+  appUrl: https://cds.example.org
+
+api:
+  appUrl: https://api.cds.example.org
+
+mysql:
+  enabled: false
+  host: mysql.example.org
+  port: 3306
+  appDatabase: cohort_discovery
+  omopDatabase: omop
+  username: cohort_discovery
+
+redis:
+  enabled: false
+  host: redis.example.org
+  port: 6379
+  auth: true
+
+keycloak:
+  enabled: false
+
+sso:
+  issuer: https://login.example.org/realms/cohort-discovery-service
+  clientId: cohort-discovery-service-api
+
+provision:
+  enabled: false
+
+synthetic:
+  enabled: false
+
+secrets:
+  existingSecret: cohort-discovery-secrets
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+  tls:
+    - secretName: cohort-discovery-tls
+      hosts:
+        - cds.example.org
+        - api.cds.example.org

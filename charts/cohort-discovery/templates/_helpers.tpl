@@ -20,7 +20,7 @@ app.kubernetes.io/component: {{ .component }}
 {{- end -}}
 
 {{- define "cohort-discovery.secretName" -}}
-{{ .Release.Name }}-secrets
+{{ .Values.secrets.existingSecret | default (printf "%s-secrets" .Release.Name) }}
 {{- end -}}
 
 {{- define "cohort-discovery.secretEnv" -}}
@@ -39,13 +39,75 @@ app.kubernetes.io/component: {{ .component }}
 {{ include "cohort-discovery.secretEnv" (dict "root" . "name" "COLLECTION_HOSTS_KEY_SALT_2" "key" "collection-hosts-key-salt-2") }}
 {{ include "cohort-discovery.secretEnv" (dict "root" . "name" "PASSPORT_PRIVATE_KEY" "key" "passport-private-key") }}
 {{ include "cohort-discovery.secretEnv" (dict "root" . "name" "PASSPORT_PUBLIC_KEY" "key" "passport-public-key") }}
-{{- if .Values.keycloak.enabled }}
-{{ include "cohort-discovery.secretEnv" (dict "root" . "name" "SSO_DEFAULT_CLIENT_SECRET" "key" "keycloak-client-secret") }}
+{{- if include "cohort-discovery.ssoEnabled" . }}
+{{ include "cohort-discovery.secretEnv" (dict "root" . "name" "SSO_DEFAULT_CLIENT_SECRET" "key" (include "cohort-discovery.ssoClientSecretKey" .)) }}
+{{- end }}
+{{- if .Values.redis.auth }}
+{{ include "cohort-discovery.secretEnv" (dict "root" . "name" "REDIS_PASSWORD" "key" "redis-password") }}
 {{- end }}
 {{- end -}}
 
 {{- define "cohort-discovery.keycloakUrl" -}}
-http://localhost:{{ .Values.keycloak.port }}
+{{ .Values.keycloak.url | default (printf "http://localhost:%v" .Values.keycloak.port) }}
+{{- end -}}
+
+{{- define "cohort-discovery.isLocalhost" -}}
+{{- $hostname := (urlParse .).hostname -}}
+{{- if or (eq $hostname "localhost") (hasSuffix ".localhost" $hostname) }}true{{ end -}}
+{{- end -}}
+
+{{- define "cohort-discovery.podHostAliases" -}}
+{{- $aliases := .root.Values.hostAliases | default list -}}
+{{- $loopback := list -}}
+{{- range .urls }}
+{{- $hostname := (urlParse .).hostname -}}
+{{- if hasSuffix ".localhost" $hostname }}{{ $loopback = append $loopback $hostname }}{{ end -}}
+{{- end }}
+{{- if $loopback }}{{ $aliases = append $aliases (dict "ip" "127.0.0.1" "hostnames" $loopback) }}{{ end -}}
+{{- with $aliases }}
+hostAliases:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end -}}
+
+{{- define "cohort-discovery.ssoEnabled" -}}
+{{- if or .Values.keycloak.enabled .Values.sso.issuer }}true{{ end -}}
+{{- end -}}
+
+{{- define "cohort-discovery.ssoIssuer" -}}
+{{- if .Values.keycloak.enabled -}}
+{{ include "cohort-discovery.keycloakIssuer" . }}
+{{- else -}}
+{{ .Values.sso.issuer }}
+{{- end -}}
+{{- end -}}
+
+{{- define "cohort-discovery.ssoClientId" -}}
+{{- if .Values.keycloak.enabled -}}
+{{ include "cohort-discovery.keycloakClientId" . }}
+{{- else -}}
+{{ required "sso.clientId is required when sso.issuer is set" .Values.sso.clientId }}
+{{- end -}}
+{{- end -}}
+
+{{- define "cohort-discovery.ssoClientSecretKey" -}}
+{{ if .Values.keycloak.enabled }}keycloak-client-secret{{ else }}sso-client-secret{{ end }}
+{{- end -}}
+
+{{- define "cohort-discovery.mysqlHost" -}}
+{{- if .Values.mysql.enabled -}}
+{{ include "cohort-discovery.name" (dict "root" . "component" "mysql") }}
+{{- else -}}
+{{ required "mysql.host is required when mysql.enabled is false" .Values.mysql.host }}
+{{- end -}}
+{{- end -}}
+
+{{- define "cohort-discovery.redisHost" -}}
+{{- if .Values.redis.enabled -}}
+{{ include "cohort-discovery.name" (dict "root" . "component" "redis") }}
+{{- else -}}
+{{ required "redis.host is required when redis.enabled is false" .Values.redis.host }}
+{{- end -}}
 {{- end -}}
 
 {{- define "cohort-discovery.keycloakIssuer" -}}
@@ -133,7 +195,8 @@ keycloak-user-{{ . | kebabcase }}
 {{- end -}}
 
 {{- define "cohort-discovery.urlPort" -}}
-{{ required (printf "%s must include a port, for example http://localhost:8100" .name) (regexFind "[0-9]+$" (urlParse .url).host) }}
+{{- $url := urlParse .url -}}
+{{ regexFind "[0-9]+$" $url.host | default (ternary "443" "80" (eq $url.scheme "https")) }}
 {{- end -}}
 
 {{- define "cohort-discovery.localhostForward" -}}
@@ -178,14 +241,16 @@ keycloak-user-{{ . | kebabcase }}
     - sh
     - -c
     - |
-      until mysql --host="$DB_HOST" --user="$DB_USERNAME" --batch --skip-column-names \
+      until mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USERNAME" --batch --skip-column-names \
         --execute="SELECT 1 FROM service_accounts WHERE name = '$SCHEDULER_SERVICE_ACCOUNT_NAME'" "$DB_DATABASE" 2>/dev/null | grep -q 1; do
         echo "Waiting for api-init to finish bootstrapping ${DB_DATABASE}..."
         sleep 5
       done
   env:
     - name: DB_HOST
-      value: {{ include "cohort-discovery.name" (dict "root" . "component" "mysql") }}
+      value: {{ include "cohort-discovery.mysqlHost" . }}
+    - name: DB_PORT
+      value: {{ .Values.mysql.port | quote }}
     - name: DB_USERNAME
       value: {{ .Values.mysql.username | quote }}
     - name: DB_DATABASE
@@ -193,6 +258,8 @@ keycloak-user-{{ . | kebabcase }}
     - name: SCHEDULER_SERVICE_ACCOUNT_NAME
       value: {{ .Values.scheduler.serviceAccountName | quote }}
     {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "MYSQL_PWD" "key" "mysql-password") | nindent 4 }}
+  resources:
+    {{- toYaml .Values.waitResources | nindent 4 }}
 {{- end -}}
 
 {{- define "cohort-discovery.slug" -}}

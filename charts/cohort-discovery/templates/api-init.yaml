@@ -1,6 +1,6 @@
 {{- $name := include "cohort-discovery.name" (dict "root" . "component" "api-init") -}}
-{{- $mysql := include "cohort-discovery.name" (dict "root" . "component" "mysql") -}}
-{{- $redis := include "cohort-discovery.name" (dict "root" . "component" "redis") -}}
+{{- $mysql := include "cohort-discovery.mysqlHost" . -}}
+{{- $redis := include "cohort-discovery.redisHost" . -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -40,14 +40,22 @@ spec:
           command:
             - sh
             - -c
-            - until mysqladmin ping --host={{ $mysql }} --silent; do echo "Waiting for {{ $mysql }}..."; sleep 3; done
+            - until mysqladmin ping --host={{ $mysql }} --port={{ .Values.mysql.port }} --silent; do echo "Waiting for {{ $mysql }}..."; sleep 3; done
+          resources:
+            {{- toYaml .Values.waitResources | nindent 12 }}
         - name: wait-for-redis
           image: {{ include "cohort-discovery.image" .Values.images.redis }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           command:
             - sh
             - -c
-            - until redis-cli -h {{ $redis }} ping | grep -q PONG; do echo "Waiting for {{ $redis }}..."; sleep 3; done
+            - until redis-cli -h {{ $redis }} -p {{ .Values.redis.port }} ping | grep -q PONG; do echo "Waiting for {{ $redis }}..."; sleep 3; done
+          {{- if .Values.redis.auth }}
+          env:
+            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "REDISCLI_AUTH" "key" "redis-password") | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.waitResources | nindent 12 }}
       containers:
         - name: api-init
           image: {{ include "cohort-discovery.image" .Values.images.api }}
@@ -67,6 +75,8 @@ spec:
             {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "SCHEDULER_CLIENT_ID" "key" "scheduler-client-id") | nindent 12 }}
             {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "SCHEDULER_CLIENT_SECRET" "key" "scheduler-client-secret") | nindent 12 }}
             {{- include "cohort-discovery.apiSecretEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.init.resources | nindent 12 }}
           volumeMounts:
             - name: scripts
               mountPath: /stack/api-init

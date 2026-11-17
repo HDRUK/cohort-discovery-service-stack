@@ -1,0 +1,20 @@
+web:
+  appUrl: https://cds.example.org
+
+api:
+  appUrl: https://api.cds.example.org
+
+keycloak:
+  url: https://auth.cds.example.org
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+  tls:
+    - secretName: cohort-discovery-tls
+      hosts:
+        - cds.example.org
+        - api.cds.example.org
+        - auth.cds.example.org
