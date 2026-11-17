@@ -100,6 +100,7 @@ helm lint charts/cohort-discovery -f generated/secrets.values.yaml -f generated/
 python3 -m unittest discover -s tests/provision   # provisioner tests, standard library only
 export GITHUB_TOKEN=$(gh auth token)  # the API image build needs it until A1
 tilt up                               # the whole stack, local contexts only
+tilt up -- --api-port=18100           # other host ports or --keycloak=false; or set them in tilt_config.json (git-ignored)
 tilt down                             # keeps the MySQL, Keycloak and synthetic volumes
 mkdocs build --strict -d /tmp/site    # the docs site; pip install -r requirements-docs.txt first
 ```

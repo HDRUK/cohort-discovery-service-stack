@@ -48,7 +48,7 @@ Other changes work the same way: edit a file under `customisations/`, save, and 
 | `athena/` | The `vocab-import` Job runs | Pass `vocab.athena.hostPath`. See [Vocabulary](vocabulary.md) |
 | Other chart values | Edit `charts/cohort-discovery/values.yaml`; Tilt redeploys | `helm upgrade -f my-values.yaml …` |
 
-Under Tilt, a few values are set by the Tiltfile and override any values file: `api.appUrl`, `web.appUrl`, `keycloak.enabled`, `keycloak.port`, `provision.enabled` and `vocab.athena.hostPath`. Change them through the `CDS_*` environment variables in [Host ports](../getting-started.md#host-ports).
+Under Tilt, a few values are set by the Tiltfile and override any values file: `api.appUrl`, `web.appUrl`, `keycloak.enabled`, `keycloak.port`, `provision.enabled` and `vocab.athena.hostPath`. Change the ports and Keycloak through the [Tilt settings](../getting-started.md#host-ports); the Athena path follows `customisations/athena/`.
 
 ## What's in `customisations/`
 
