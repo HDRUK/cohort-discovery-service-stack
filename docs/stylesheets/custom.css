@@ -56,3 +56,13 @@ h1, h2, h3, h4, h5, h6 {
 .md-typeset .grid.cards > ul > li {
     border-top: 3px solid #3db28c;
 }
+
+.md-nav--primary > .md-nav__list > .md-nav__item--section > .md-nav__link {
+    color: #475da7;
+    font-weight: bold;
+}
+
+.md-nav--primary .md-nav__link--active {
+    color: #3db28c;
+    font-weight: bold;
+}
