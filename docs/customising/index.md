@@ -9,7 +9,7 @@ Don't change `services/` to customise the stack. The services are configured thr
 
 ## Try it: rename the product
 
-With the stack running under Tilt (see [Try it on your laptop](../getting-started.md)):
+With the stack running under Tilt (see [Run locally](../getting-started.md)):
 
 1. Open `customisations/web/branding/branding.config.ts` and change `productName` and `loginTitle`:
 

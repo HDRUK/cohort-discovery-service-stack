@@ -63,7 +63,7 @@ export GITHUB_TOKEN=$(gh auth token)
 tilt up
 ```
 
-When everything in the Tilt UI (http://localhost:10350) is green, open http://localhost:3000 and choose **Single Sign-On**. The users and where their passwords are: [Try it on your laptop](https://hdruk.github.io/cohort-discovery-service-stack/getting-started/#sign-in).
+When everything in the Tilt UI (http://localhost:10350) is green, open http://localhost:3000 and choose **Single Sign-On**. The users and where their passwords are: [Run locally](https://hdruk.github.io/cohort-discovery-service-stack/getting-started/#sign-in).
 
 ## What's in the repo
 
