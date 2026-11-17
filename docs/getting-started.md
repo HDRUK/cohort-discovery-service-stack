@@ -1,4 +1,4 @@
-# Try it on your laptop
+# Run locally
 
 This page runs the whole stack on your laptop with Tilt: the services, a throwaway Keycloak with three fictional users, the minimal OMOP vocabulary, and two synthetic collections that answer queries straight away. To run it on a shared cluster, see [Deploy to a cluster](deploying/index.md).
 

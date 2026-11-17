@@ -12,7 +12,7 @@ This stack runs the whole service in **standalone mode**, with its own sign-in t
 
     The [Overview](overview.md) shows every part on one diagram, how a query flows, and the words the service uses.
 
--   **2. Try it on your laptop**
+-   **2. Run locally**
 
     [Run the whole stack](getting-started.md) with Tilt, sign in as a fictional researcher and run a query.
 

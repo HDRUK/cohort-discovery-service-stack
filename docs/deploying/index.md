@@ -1,6 +1,6 @@
 # Deploy to a cluster
 
-This page installs the stack on a shared Kubernetes cluster with Helm, in the order you'll need to do things. To try it on your laptop first, see [Try it on your laptop](../getting-started.md).
+This page installs the stack on a shared Kubernetes cluster with Helm, in the order you'll need to do things. To run it on your own machine first, see [Run locally](../getting-started.md).
 
 !!! warning "Before real people sign in"
     The service stores researchers' email addresses, identity-provider claims and activity logs. Read the [personal data inventory](../data-protection/personal-data-inventory.md) and the [known limitations](#known-limitations) below, and replace the placeholder legal pages (see [Branding](../customising/branding.md)). For how custodians' data is protected, see the service docs on [data governance](https://hdruk.github.io/cohort-discovery-service-docs/architecture/governance/).
