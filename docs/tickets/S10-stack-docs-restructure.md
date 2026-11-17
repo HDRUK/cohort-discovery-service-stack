@@ -7,9 +7,9 @@ The docs site is the one place to read the stack's docs, ordered as a reader nee
 
 ## Steps
 1. The README leads with the site's URL, and `NOTES.txt` points to the site.
-2. Nav order: Overview, Run locally, Customise (opening with a worked example), Deploy to a cluster, Connect a collection, Develop the web app, FAQ, Reference.
+2. Nav order: Overview, Run locally, Customise (opening with a worked example), Deploy to a cluster, Connect a collection, FAQ, Reference.
 3. Merge `running/helm.md` and `installing/beyond-a-laptop.md` into `deploying/index.md`, in deploy order, with a recipe for creating the Secret and a known-limitations list.
-4. New pages: `deploying/connect-a-collection.md` (a real custodian's BUNNY type A and type B), `developing/web.md` (the dev loop, build-time vs run-time) and `reference/scheduled-jobs.md`.
+4. New pages: `deploying/connect-a-collection.md` (a real custodian's BUNNY type A and type B), `reference/scheduled-jobs.md`.
 5. Turn `operations/` into `faq.md`, and move the docs-site notes to `CONTRIBUTING.md`.
 6. One diagram, grouped into browser-facing, service, data and collection host, showing BUNNY type A and type B per collection, in the README and the overview.
 7. Fix what the review found wrong:
@@ -21,6 +21,8 @@ The docs site is the one place to read the stack's docs, ordered as a reader nee
    - `API_BASE_URL` is set at run time;
    - `organisationName` and `links.organisation` aren't shown in standalone mode.
 8. Link to the service docs for BUNNY, identity providers, claim mapping, branding fields, governance and somop.
+
+9. Keep the home page to a line and four links, and leave developing the services to the service docs' developer guides, with a short section on Run locally. Follow-up after review.
 
 ## Done when
 - `mkdocs build --strict` passes, and the links to the service docs resolve.

@@ -72,7 +72,7 @@ Serve it over HTTPS. The web's sign-in cookie is `Secure`, and browsers drop it 
 
 ### `Token signature mismatch`, or I get signed out of another app
 
-Another copy of the web app on the same host is sharing the sign-in cookie. Sign out of both, or use a private window. See [Cookies and ports](developing/web.md#cookies-and-ports).
+Another copy of the web app on the same host is sharing the sign-in cookie. Sign out of both, or use a private window. The stack's cookie is named `cds_stack_token` (`web.cookieTokenName`) to avoid this.
 
 ### A user signs in but has the wrong access
 

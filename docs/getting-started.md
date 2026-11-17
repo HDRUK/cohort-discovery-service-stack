@@ -98,7 +98,11 @@ tilt up
 
 Use the same ports in the URLs above. Changing `CDS_API_PORT` also rebuilds the web image, because the task URL the web shows custodians is built in.
 
-Browsers share cookies across ports on the same host, so the stack's web app names its sign-in cookie `cds_stack_token` rather than the default `token`. A development web app on `localhost` and the stack can then both be signed in at once. To run the web's own dev server against the stack, see [Develop the web app](developing/web.md).
+Browsers share cookies across ports on the same host, so the stack's web app names its sign-in cookie `cds_stack_token` rather than the default `token`. A development web app on `localhost` and the stack can then both be signed in at once.
+
+## Working on the services
+
+The web, API and NLP source is in `services/`, pinned to releases. Make changes in each service's own repo, then move the pin here. Tilt rebuilds an image whenever its source changes: for the web that's a full production build, which takes several minutes, so it's for checking changes in the real image rather than for day-to-day development. To develop a service, follow the service docs' developer guide for the [web](https://hdruk.github.io/cohort-discovery-service-docs/developers/web/), [API](https://hdruk.github.io/cohort-discovery-service-docs/developers/api/) or [NLP](https://hdruk.github.io/cohort-discovery-service-docs/developers/nlp/).
 
 ## Without Keycloak
 
