@@ -2,6 +2,8 @@
 
 Run the Cohort Discovery Service on your own Kubernetes cluster: the web app, API, NLP, sign-in through Keycloak, and synthetic collections that answer queries straight away.
 
+[Run locally](getting-started.md){ .md-button .md-button--primary } [Deploy to a cluster](deploying/index.md){ .md-button .md-button--secondary }
+
 <div class="grid cards" markdown>
 
 -   [**Overview**](overview.md): the parts and how a query flows

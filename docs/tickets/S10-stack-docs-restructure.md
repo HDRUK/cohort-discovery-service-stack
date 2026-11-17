@@ -23,6 +23,7 @@ The docs site is the one place to read the stack's docs, ordered as a reader nee
 8. Link to the service docs for BUNNY, identity providers, claim mapping, branding fields, governance and somop.
 
 9. Keep the home page to a line and four links, and leave developing the services to the service docs' developer guides, with a short section on Run locally. Follow-up after review.
+10. Left-hand navigation instead of header tabs. Follow-up after review.
 
 ## Done when
 - `mkdocs build --strict` passes, and the links to the service docs resolve.
