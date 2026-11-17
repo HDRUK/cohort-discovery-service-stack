@@ -11,7 +11,7 @@ shift
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 web_dir="${repo_root}/services/web"
-branding_dir="${repo_root}/config/branding"
+branding_dir="${repo_root}/customisations/web/branding"
 
 if [ ! -f "${web_dir}/Dockerfile" ]; then
   echo "build-web: ${web_dir#"${repo_root}"/} is empty. Run: git submodule update --init" >&2

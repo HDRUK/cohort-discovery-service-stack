@@ -31,6 +31,21 @@ data:
   COHORT_DISCOVER_NLP_SERVICE_BASE_URI: http://{{ include "cohort-discovery.name" (dict "root" . "component" "nlp") }}:{{ .Values.nlp.port }}
   AUTH_PASSWORD_LOGIN_ENABLED: "true"
   STANDALONE_JWT_TTL_MINUTES: {{ .Values.api.standaloneJwtTtlMinutes | quote }}
+  {{- if .Values.keycloak.enabled }}
+  SSO_ENABLED: "true"
+  SSO_FRONTEND_CALLBACK_URL: {{ printf "%s/auth/sso/callback" .Values.web.appUrl | quote }}
+  SSO_FRONTEND_ERROR_URL: {{ printf "%s/auth/sso/error" .Values.web.appUrl | quote }}
+  SSO_FRONTEND_LOGIN_URL: {{ printf "%s/login" .Values.web.appUrl | quote }}
+  SSO_DISCOVERY_CACHE_TTL_SECONDS: "60"
+  SSO_JWKS_CACHE_TTL_SECONDS: "60"
+  SSO_DEFAULT_ENABLED: "true"
+  SSO_DEFAULT_ISSUER: {{ include "cohort-discovery.keycloakIssuer" . | quote }}
+  SSO_DEFAULT_CLIENT_ID: {{ include "cohort-discovery.keycloakClientId" . | quote }}
+  SSO_DEFAULT_REDIRECT_URI: {{ printf "%s/api/auth/sso/default/callback" .Values.api.appUrl | quote }}
+  SSO_DEFAULT_WORKGROUPS_CLAIM: groups
+  SSO_DEFAULT_ROLES_CLAIM: roles
+  SSO_DEFAULT_CUSTODIANS_CLAIM: groups
+  {{- end }}
   {{- range $key, $value := .Values.api.extraEnv }}
   {{ $key }}: {{ $value | quote }}
   {{- end }}

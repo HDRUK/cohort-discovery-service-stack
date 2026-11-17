@@ -14,10 +14,12 @@ The stack repo holds the plan and tracker. Changes to web, API and NLP are ticke
 Moving variables between build time and run time changes HDR UK's own pipelines and Terraform. That only happens if W2 shows it is necessary, and then together with a list of the changes HDR UK's stack would need.
 
 ### D4. Default: standalone, with the IdP as the source of truth for access
-The default stack runs `APP_OPERATION_MODE=standalone` / `APPLICATION_MODE=standalone`. Roles, custodians and workgroups come from IdP claims (`CLAIM_SYNC_*=always`, authoritative), and seeding adds to that.
+The default stack runs `APP_OPERATION_MODE=standalone` / `APPLICATION_MODE=standalone`. Roles, custodians and workgroups come from IdP claims (synced `always`, authoritative, set in `customisations/api/claimsaccesscontrol.php`), and seeding adds to that.
 
 ### D5. web, api and nlp are git submodules of this repo
 Each is pinned to a release tag. CI can override the pin with any ref (S7).
+
+**Exception, 2026-11-13:** `services/api` is pinned to commit `b257363` on the unmerged branch `feat/DP-1254-many-to-one-claim-mapping` (A8), so the stack can use list-valued claim mappings and `config/workgroups.php`. `images.api.tag` is `b257363` to match. When DP-1254 is in a release, re-pin to that tag and set the image tag back.
 
 ### D11. Repo name: `cohort-discovery-service-stack`
 Agreed 2026-11-11. The repo is `HDRUK/cohort-discovery-service-stack` (private for now).
@@ -37,20 +39,48 @@ Agreed 2026-11-11.
 Agreed 2026-11-11. Production uses Cloud Scheduler to call `POST /api/v1/services/caller/{command}`. The stack uses Kubernetes CronJobs (a small pinned image running `curl`) that call the same endpoints with a seeded service account. The API doesn't change.
 
 ### D17. Config files live in the chart
+**Replaced by D21 (2026-11-12) for the files a deployer changes.** Only the chart's own scripts (`files/api-init/`) still live in the chart.
+
 Agreed 2026-11-11. Helm's `.Files` can only read inside the chart, so the files the chart consumes (NLP rules and mappings, the Keycloak realm, the claims mapping, `provision.json`, somop configs) are defaults under `charts/cohort-discovery/files/`, each overridable through values. `helm install` needs no extra flags. `config/branding/` stays at the repo root, because it's a web build input, not something the chart reads.
 
 ### D6. How a deployer overrides web branding
-Agreed 2026-11-12. `scripts/build-web.sh` copies the web submodule into a temporary build context, copies `config/branding/` over its `branding/`, then runs the web's own Dockerfile. Files missing from the overlay fall back to the submodule's. The web Dockerfile and variables don't change (D3), and HDR UK's pipeline isn't affected. Tilt builds the web through the same script. The gaps where the web ignores `branding/` (W3) are on hold and get fixed upstream later; the overlay picks up those fixes without changing.
+Agreed 2026-11-12. `scripts/build-web.sh` copies the web submodule into a temporary build context, copies `config/branding/` (now `customisations/web/branding/`, D21) over its `branding/`, then runs the web's own Dockerfile. Files missing from the overlay fall back to the submodule's. The web Dockerfile and variables don't change (D3), and HDR UK's pipeline isn't affected. Tilt builds the web through the same script. The gaps where the web ignores `branding/` (W3) are on hold and get fixed upstream later; the overlay picks up those fixes without changing.
 
 ### D9. How a deployer supplies the claims mapping
-Agreed 2026-11-12. A whole replacement `config/claimsaccesscontrol.php`, mounted by the chart over `/var/www/config/claimsaccesscontrol.php` in the API containers. It's a plain Laravel config file, and `start.sh` runs `config:cache` at start, so the mounted file is what the API uses. The API doesn't change, so A3 isn't needed. The default copy is `charts/cohort-discovery/files/api/claimsaccesscontrol.php`, overridable through values (D17).
+Agreed 2026-11-12. A whole replacement `config/claimsaccesscontrol.php`, mounted by the chart over `/var/www/config/claimsaccesscontrol.php` in the API containers. It's a plain Laravel config file, and `start.sh` runs `config:cache` at start, so the mounted file is what the API uses. The API doesn't change, so A3 isn't needed. The default copy is `customisations/api/claimsaccesscontrol.php` (D21; it was `charts/cohort-discovery/files/api/` under D17).
 Points to keep in mind:
-- The file replaces the whole config, including the `sync` section that reads `CLAIM_SYNC_*`. A deployer's copy must keep those `env()` calls, or the env settings stop working.
-- It's a copy of upstream. When the API submodule's pin moves, diff it against the new `config/claimsaccesscontrol.php`.
+- The file replaces the whole config, including the `sync` section. The stack's copy hard-codes every value instead of reading `CLAIM_SYNC_*` and the other env variables, so the file alone shows the policy in use, and the chart doesn't set those variables (changed 2026-11-13). Without the file, the API falls back to its own copy and env defaults: workgroups synced on first login only, not authoritatively.
+- It started as a copy of upstream. When the API submodule's pin moves, diff it against the new `config/claimsaccesscontrol.php`.
 - It's PHP, so it runs in the API. Only the deployer supplies it, the same as the image.
+- Since 2026-11-13 the same goes for `config/workgroups.php` (from DP-1254, A8): `customisations/api/workgroups.php` is mounted over it in the same containers, and the init Job runs `WorkgroupSeeder` on every start, so the list decides which workgroups exist. It replaced the stack's own `bootstrap.workgroups` and `ensure-workgroups.php`.
+- Since 2026-11-13 `config/auth.php` too: `customisations/api/auth.php` turns `password_login` off, so everyone signs in through Keycloak, and the admin is also a Keycloak user (`keycloak.users`, linked by verified email). It's the whole Laravel auth config, with upstream's defaults written out, so diff it on every API bump. The API falls back to password sign-in when SSO isn't available (`LoginMethods::passwordEnabled`), so turning Keycloak off doesn't lock anyone out. The stack seeds only `UK-RESEARCH`, `UK-INDUSTRY`, `NON-UK-RESEARCH`, `NON-UK-INDUSTRY` and `NHS-SDE`: the admin role sees every collection without `ADMIN`, custodians see theirs through their custodian rather than `CUSTODIAN`, `DEFAULT` is only an automatic extra (`ensure_default` is off) and `OTHER` was unused.
 
 ### D13. Licence
 Agreed 2026-11-12: MIT, matching everything already published (the services, somop and the five `hdruk/*` packages). This repo and `project-daphne-bunny-config` will be MIT, and the four packages without a `LICENSE` file can have one added. No action is needed now.
+
+### D20. Removing a user's last Keycloak group doesn't remove the workgroup
+Agreed 2026-11-12: (a) and (b). Found during S2. When a user has no groups, Keycloak leaves out the `groups` claim instead of sending `[]`. The API reads a missing claim as "the IdP says nothing" and keeps the user's workgroups and custodians, even under `always` + authoritative sync (D4). Removing one of several groups works.
+Options:
+- (a) Put every realm user in the `default` group, which maps to the `DEFAULT` workgroup every user gets anyway, so the claim is always present. A realm-only change, but it breaks again if someone removes `default`.
+- (b) An API ticket: under an authoritative sync, treat a missing claim as empty, possibly behind a setting.
+- (c) Document it only. S2 does this in `getting-started.md` and `02-verified-facts.md`.
+
+**Done:** (a) is `keycloak.defaultGroup` (default `default`): the chart adds that group to every user in `keycloak.users` and makes it the realm's default group, so users created in the console get it too. (b) is ticket A7. Since 2026-11-13 the stack seeds no `DEFAULT` workgroup, so the `default` group maps to nothing; it's still there to keep the claim present.
+
+### D21. Deployer customisations live in `customisations/`
+Agreed 2026-11-12, during S2. Every file a deployer is expected to change sits under `customisations/<service>/`, so it's clear what is theirs to edit: `api/claimsaccesscontrol.php`, `keycloak/realm.json`, `nlp/rules.json` and `mappings.json`, and `web/branding/`. Later ones follow the same pattern (`provision.json` in S4, somop configs in S5). The chart's own scripts stay in `charts/cohort-discovery/files/`.
+- Helm can't read files outside the chart, so `scripts/customisations-values.sh` writes them into `generated/customisations.values.yaml`, under the values that already existed for overriding them. Tilt runs it and watches the folders. `helm install` needs `-f generated/customisations.values.yaml` as well as the secrets file, which reverses D17's "no extra flags".
+- With no claims mapping or NLP file supplied, the chart mounts nothing and the service uses its own copy, which is byte-identical at the pinned tags (api `v1.17.0`, nlp `v1.9.1`; no longer true for the API's claims mapping, see D9). Keycloak has no fallback: with it on and no realm, the render fails with a message saying what to pass.
+- `keycloak.realmJson` is now always the base realm, with the values' groups, roles and users set on it. It's no longer used verbatim.
+- The rendered chart is byte-identical to before when the customisations are passed.
+
+### D16. How BUNNYs are added to a running stack
+Agreed 2026-11-13: automatically, from `customisations/provision.json`, with omop-lite's bundled synthetic data. This replaces the earlier plan of adding a BUNNY by hand per collection.
+- Each collection marked `"synthetic": true` gets its own database in one shared `postgres:16`, loaded by omop-lite with `SYNTHETIC=true`, and a pinned `hutch/bunny` Deployment whose credentials and `COLLECTION_ID` come from the Secret S4 writes. The chart owns every container; somop's own `docker compose` isn't used.
+- Every synthetic collection returns the same counts. somop can be added later for distinct data per collection; it needs a Dockerfile in `somop` first.
+
+### D22. How the provisioner authenticates
+Agreed 2026-11-13, during S4. The host, collection and workgroup endpoints need a signed-in user's JWT, service accounts only reach `/api/v1/services/caller/*`, and password sign-in is off (D9, `customisations/api/auth.php`). So the provisioner signs in as `bootstrap.adminEmail` through Keycloak the way a browser does: the API's SSO redirect, Keycloak's login form, the API's callback, then `POST /api/auth/sso/exchange`. It needs no API change and uses the same path as everyone else, at the cost of depending on Keycloak's login form (`#kc-form-login`). Rejected: PHP in an API container (skips the API's validation and couples to its models), turning password sign-in back on, and an API ticket for service-account access (blocks S4).
 
 ## Open
 
@@ -68,11 +98,6 @@ Options:
 - a VM running Compose.
 
 **Recommendation:** an existing namespace through Helm, because it matches how `dev-standalone` is deployed today. That means S7 can't deploy until S6 is done. Until then it builds and pushes only.
-
-### D16. How BUNNYs are added to a running stack
-The user wants BUNNYs added by hand once the core is up and collections are provisioned, "via somop or something more custom".
-**Recommendation:** a manual Tilt resource (and a plain script for non-Tilt installs) per collection. It runs `somop generate` as a Job, loads the result into a shared `postgres:16` with omop-lite, and installs a BUNNY Deployment that reads the host's credentials from the Kubernetes Secret S4 wrote. This uses somop for data only and lets the chart own every container, instead of somop's own `docker compose`.
-**Alternative found 2026-11-12:** omop-lite's `SYNTHETIC=true` loads bundled synthetic data without somop (`AndyRae/cd-build` does this). That removes the somop Dockerfile and the generate Job, but gives every collection the same data. Decide whether distinct data per collection is worth the somop step.
 
 ### D18. Which Redis the stack runs
 Found during S1. Redis 7.4 and later aren't under an OSI licence: 7.4 is RSALv2/SSPL, and 8.x adds AGPL. 7.2 is the last BSD-licensed line. The API only needs a Redis-protocol server for its queue, cache and sessions.

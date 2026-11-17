@@ -1,4 +1,6 @@
 {{- $name := include "cohort-discovery.name" (dict "root" . "component" "nlp") -}}
+{{- $hasNlpConfig := or .Values.nlp.rulesJson .Values.nlp.mappingsJson -}}
+{{- if $hasNlpConfig }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,11 +9,16 @@ metadata:
   labels:
     {{- include "cohort-discovery.labels" (dict "root" . "component" "nlp") | nindent 4 }}
 data:
+  {{- with .Values.nlp.rulesJson }}
   rules.json: |
-    {{- .Values.nlp.rulesJson | default (.Files.Get "files/nlp/rules.json") | nindent 4 }}
+    {{- . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.nlp.mappingsJson }}
   mappings.json: |
-    {{- .Values.nlp.mappingsJson | default (.Files.Get "files/nlp/mappings.json") | nindent 4 }}
+    {{- . | nindent 4 }}
+  {{- end }}
 ---
+{{- end }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -44,7 +51,7 @@ spec:
       labels:
         {{- include "cohort-discovery.labels" (dict "root" . "component" "nlp") | nindent 8 }}
       annotations:
-        checksum/nlp-config: {{ printf "%s%s" (.Values.nlp.rulesJson | default (.Files.Get "files/nlp/rules.json")) (.Values.nlp.mappingsJson | default (.Files.Get "files/nlp/mappings.json")) | sha256sum }}
+        checksum/nlp-config: {{ printf "%s%s" .Values.nlp.rulesJson .Values.nlp.mappingsJson | sha256sum }}
     spec:
       initContainers:
         {{- include "cohort-discovery.waitForBootstrap" . | nindent 8 }}
@@ -70,10 +77,14 @@ spec:
             - name: DB_USER
               value: {{ .Values.mysql.username | quote }}
             {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "DB_PASS" "key" "mysql-password") | nindent 12 }}
+            {{- if .Values.nlp.rulesJson }}
             - name: RULES_PATH
               value: /config/nlp/rules.json
+            {{- end }}
+            {{- if .Values.nlp.mappingsJson }}
             - name: MAPPINGS_PATH
               value: /config/nlp/mappings.json
+            {{- end }}
             {{- range $key, $value := .Values.nlp.extraEnv }}
             - name: {{ $key }}
               value: {{ $value | quote }}
@@ -94,6 +105,7 @@ spec:
             timeoutSeconds: 5
           resources:
             {{- toYaml .Values.nlp.resources | nindent 12 }}
+          {{- if $hasNlpConfig }}
           volumeMounts:
             - name: config
               mountPath: /config/nlp
@@ -102,3 +114,4 @@ spec:
         - name: config
           configMap:
             name: {{ $name }}-config
+          {{- end }}

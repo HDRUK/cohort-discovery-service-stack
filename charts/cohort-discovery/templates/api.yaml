@@ -32,6 +32,7 @@ spec:
         {{- include "cohort-discovery.labels" (dict "root" . "component" "api") | nindent 8 }}
       annotations:
         checksum/api-env: {{ include (print $.Template.BasePath "/api-env.yaml") . | sha256sum }}
+        checksum/api-config: {{ include "cohort-discovery.apiConfigFiles" . | sha256sum }}
     spec:
       initContainers:
         {{- include "cohort-discovery.waitForBootstrap" . | nindent 8 }}
@@ -46,6 +47,10 @@ spec:
             - name: START_HORIZON
               value: "0"
             {{- include "cohort-discovery.apiSecretEnv" . | nindent 12 }}
+          {{- if include "cohort-discovery.apiConfigFiles" . | fromJson }}
+          volumeMounts:
+            {{- include "cohort-discovery.apiConfigMount" . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.api.port }}
@@ -68,6 +73,13 @@ spec:
             timeoutSeconds: 5
           resources:
             {{- toYaml .Values.api.resources | nindent 12 }}
+        {{- if .Values.keycloak.enabled }}
+        {{- include "cohort-discovery.localhostForward" (dict "root" . "name" "keycloak-forward" "listenPort" .Values.keycloak.port "target" (printf "%s:%v" (include "cohort-discovery.name" (dict "root" . "component" "keycloak")) .Values.keycloak.port)) | nindent 8 }}
+        {{- end }}
+      {{- if include "cohort-discovery.apiConfigFiles" . | fromJson }}
+      volumes:
+        {{- include "cohort-discovery.apiConfigVolume" . | nindent 8 }}
+      {{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -87,6 +99,7 @@ spec:
         {{- include "cohort-discovery.labels" (dict "root" . "component" "queue") | nindent 8 }}
       annotations:
         checksum/api-env: {{ include (print $.Template.BasePath "/api-env.yaml") . | sha256sum }}
+        checksum/api-config: {{ include "cohort-discovery.apiConfigFiles" . | sha256sum }}
     spec:
       initContainers:
         {{- include "cohort-discovery.waitForBootstrap" . | nindent 8 }}
@@ -100,5 +113,13 @@ spec:
                 name: {{ include "cohort-discovery.name" (dict "root" . "component" "api-env") }}
           env:
             {{- include "cohort-discovery.apiSecretEnv" . | nindent 12 }}
+          {{- if include "cohort-discovery.apiConfigFiles" . | fromJson }}
+          volumeMounts:
+            {{- include "cohort-discovery.apiConfigMount" . | nindent 12 }}
+          {{- end }}
           resources:
             {{- toYaml .Values.queue.resources | nindent 12 }}
+      {{- if include "cohort-discovery.apiConfigFiles" . | fromJson }}
+      volumes:
+        {{- include "cohort-discovery.apiConfigVolume" . | nindent 8 }}
+      {{- end }}
