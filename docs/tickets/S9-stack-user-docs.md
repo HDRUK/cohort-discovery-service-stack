@@ -19,6 +19,7 @@ Someone who has never seen the project can find out what it is, run it, customis
 5. Fix the out-of-date comparison in `docs/alternatives/docker-compose.md`.
 6. `NOTES.txt`: show the ingress URLs when the ingress is on, say that sign-in is through single sign-on, and show the admin password only with the bundled Keycloak.
 7. Add `mkdocs.yml` (MkDocs Material, HDR UK styling) and `requirements-docs.txt`.
+8. Add `.github/workflows/docs.yml`, which builds the site strictly and publishes it to GitHub Pages on pushes to `main`.
 
 ## Done when
 - `mkdocs build --strict` passes.
@@ -27,6 +28,5 @@ Someone who has never seen the project can find out what it is, run it, customis
 - `helm lint` passes, and `NOTES.txt` renders with the ingress on and off.
 
 ## Out of scope
-- Publishing the site (GitHub Pages needs a workflow; S7 or a follow-up).
 - Moving the planning docs.
 - Changes to the services.

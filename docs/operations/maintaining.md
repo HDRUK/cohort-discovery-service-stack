@@ -56,6 +56,19 @@ kubectl -n cohort-discovery exec cohort-discovery-mysql-0 -- sh -c \
 
 The dump holds personal data (researchers' emails and activity). Store and delete it accordingly; see the [personal data inventory](../data-protection/personal-data-inventory.md).
 
+## The docs site
+
+These pages are an MkDocs Material site, defined by `mkdocs.yml`. To preview it locally:
+
+```bash
+pip install -r requirements-docs.txt
+mkdocs serve
+```
+
+`.github/workflows/docs.yml` builds it with `mkdocs build --strict` and publishes it to GitHub Pages on every push to `main` that touches `docs/`, `mkdocs.yml` or `requirements-docs.txt`, or when run by hand. The strict build fails on broken links and on pages missing from the nav, so add every new page to `nav` in `mkdocs.yml`. The planning files (`docs/README.md`, `01-decisions.md`, `02-verified-facts.md`, `web-variables.md`, `tickets/`) are left out of the site with `exclude_docs`.
+
+The repo's Pages source must be set to "GitHub Actions" (Settings → Pages) for the deploy to work.
+
 ## Reset and uninstall
 
 Under Tilt, see [Stop, restart and reset](../getting-started.md#stop-restart-and-reset). With Helm, `helm uninstall cohort-discovery -n cohort-discovery` deletes the release, volumes included, but leaves the setup Jobs and the `bunny-<host>` Secrets the provision Job wrote. `kubectl delete namespace cohort-discovery` removes those too.
