@@ -190,6 +190,17 @@ Checked against api `b257363`, `omop-lite:0.9.3` and `hutch/bunny:1.9.8` on Ranc
   - `POST /v1/collection/{pid}/distributions/run-manually` with `{"query_type": "GENERIC"|"DEMOGRAPHICS"}` creates the query and a type-b task at once. It has no authorisation check beyond being signed in.
 - **Web:** opening a collection that has no distributions threw `TypeError: n is not iterable` in the browser. Not yet checked whether it goes away once distributions exist.
 
+## Learnt planning the vocabulary import (S3, 2026-11-16)
+
+Read from api `b257363` and nlp `v1.9.1`; the import itself is not yet run on a real Athena download.
+
+- **No full-text index step.** There's no `AddFullTextIndexToOmopConcepts` migration or any `FULLTEXT` index in the API at `b257363`. `database/migrations_omop/` has only the `concept` and `concept_ancestor` tables and their indexes.
+- **`app:import-omop-vocabs`** reads `<TABLE>.csv` (case-insensitive) for `VOCABULARY`, `DOMAIN`, `CONCEPT_CLASS`, `RELATIONSHIP`, `CONCEPT_RELATIONSHIP`, `CONCEPT_SYNONYM`, `CONCEPT_ANCESTOR`, `CONCEPT` and `DRUG_STRENGTH`, skips missing files with a warning, and with `--bulk` runs `LOAD DATA LOCAL INFILE` (tab-separated, one header line, no column list). `--truncate` empties only the tables it has a file for. `--table=` imports one. On a bad argument it prints an error and still exits 0.
+  - `--create-schema` creates only missing tables. `concept` and `concept_ancestor` already exist from `migrations_omop`, with the same column order as Athena, but `valid_*_date` is `DATETIME` there and `VARCHAR(10)` in the importer's own definition.
+  - The `omop` connection sets `PDO::MYSQL_ATTR_LOCAL_INFILE`, and the chart's MySQL runs with `--local-infile=1`.
+- **`concepts:populate-ancestors`** only dispatches `PopulateLocalConceptAncestors`, which fills `local_concept_ancestors` from `concept_ancestor` for concepts that already have distributions. With no distributions it does nothing.
+- **NLP doesn't need a restart after an import.** It loads its concept list from `latest_distributions` in the app DB, not the vocabulary, and reloads every `STORE_REFRESH_TTL` (300 seconds) when a fingerprint changes. The fingerprint includes the row counts of `concept_synonym` and `concept_ancestor` (`min_levels_of_separation = 1`) in the vocabulary DB, so an import is picked up on the next refresh.
+
 ## Prior art to reuse
 
 - `cohort-discovery-service-evaluator/compose.yaml`: mysql (with `init/mysql/01-omop.sql`), `api-init` (`init/api-init.sh`), nlp and api in standalone mode, with mounted Passport keys. It has no web and no Keycloak.

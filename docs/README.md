@@ -58,7 +58,7 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [S0](tickets/S0-stack-scaffold.md) | stack | Scaffold: submodules, chart and Tiltfile skeletons, `config/` layout | D5 | done |
 | [S1](tickets/S1-stack-helm-core.md) | stack | Helm core and Tilt: data stores, services, init, scheduler | S0 | done |
 | [S2](tickets/S2-stack-keycloak.md) | stack | Throwaway Keycloak in the chart, wired as SSO, with the claims mapping mounted (D9) | S1 | in review |
-| [S3](tickets/S3-stack-omop-vocabulary.md) | stack | OMOP vocabulary: minimal default and optional Athena import Job | S1 | todo |
+| [S3](tickets/S3-stack-omop-vocabulary.md) | stack | OMOP vocabulary: minimal default and optional Athena import Job | S1 | in review |
 | [S4](tickets/S4-stack-provisioner.md) | stack | Provisioner: custodians, hosts and collections through the API, shared with workgroups and made active | S1, S2, D22 | done |
 | [S5](tickets/S5-stack-synthetic-bunnies.md) | stack | A synthetic database and BUNNY for each synthetic collection in `provision.json`, set up automatically | S4, D16 | in review |
 | [S6](tickets/S6-stack-non-local-installs.md) | stack | Non-local installs: ingress, external stores, example values | S1–S5 | todo |

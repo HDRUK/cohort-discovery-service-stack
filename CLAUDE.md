@@ -54,6 +54,7 @@ charts/cohort-discovery/  Helm umbrella chart: the one definition of the stack (
   files/                  the chart's own scripts: api-init/, provision/, synthetic/
 customisations/           everything a deployer changes, one folder per service (D21):
                           api/claimsaccesscontrol.php, keycloak/realm.json, nlp/,
+                          athena/ (git-ignored Athena download, Tilt only, S3),
                           web/branding/ (a web build input, D6), provision.json (S4)
 scripts/                  local-secrets.sh, customisations-values.sh, build-web.sh (D6)
 Tiltfile                  local development on Rancher Desktop, kind or k3s

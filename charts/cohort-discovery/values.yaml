@@ -164,6 +164,14 @@ provision:
   enabled: true
   json: ""
 
+vocab:
+  athena:
+    hostPath: ""
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
 synthetic:
   enabled: true
   defaultSize: 100

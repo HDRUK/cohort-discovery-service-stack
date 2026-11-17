@@ -32,6 +32,8 @@ API_HOST_PORT = str(int(os.getenv('CDS_API_PORT', '8100')))
 NLP_HOST_PORT = str(int(os.getenv('CDS_NLP_PORT', '5001')))
 KEYCLOAK_HOST_PORT = str(int(os.getenv('CDS_KEYCLOAK_PORT', '8180')))
 KEYCLOAK_ENABLED = os.getenv('CDS_KEYCLOAK_ENABLED', 'true') != 'false'
+ATHENA_CUSTOMISATION = 'customisations/athena'
+ATHENA_PATH = os.path.abspath(ATHENA_CUSTOMISATION) if os.path.exists(ATHENA_CUSTOMISATION + '/VOCABULARY.csv') else ''
 API_HOST_URL = 'http://localhost:' + API_HOST_PORT
 WEB_HOST_URL = 'http://localhost:' + WEB_HOST_PORT
 
@@ -40,7 +42,7 @@ if not os.getenv('GITHUB_TOKEN', ''):
 
 local('scripts/local-secrets.sh', quiet=True)
 local('scripts/customisations-values.sh', quiet=True)
-for path in CHART_CUSTOMISATIONS + ['customisations/web/branding/assets/logo.svg', 'customisations/web/branding/assets/icon.svg', 'customisations/provision.json', 'scripts/customisations-values.sh']:
+for path in CHART_CUSTOMISATIONS + [ATHENA_CUSTOMISATION + '/VOCABULARY.csv', 'customisations/web/branding/assets/logo.svg', 'customisations/web/branding/assets/icon.svg', 'customisations/provision.json', 'scripts/customisations-values.sh']:
     watch_file(path)
 local(
     'kubectl --context "$CONTEXT" create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl --context "$CONTEXT" apply -f -',
@@ -88,6 +90,7 @@ k8s_yaml(helm(
         'keycloak.enabled=' + str(KEYCLOAK_ENABLED).lower(),
         'provision.enabled=' + str(KEYCLOAK_ENABLED).lower(),
         'keycloak.port=' + KEYCLOAK_HOST_PORT,
+        'vocab.athena.hostPath=' + ATHENA_PATH,
     ],
 ))
 
@@ -106,6 +109,13 @@ k8s_resource(
     labels=['init'],
     resource_deps=['mysql', 'redis'],
 )
+if ATHENA_PATH:
+    k8s_resource(
+        'cohort-discovery-vocab-import',
+        new_name='vocab-import',
+        labels=['init'],
+        resource_deps=['api-init'],
+    )
 if KEYCLOAK_ENABLED and os.path.exists('customisations/provision.json'):
     k8s_resource(
         'cohort-discovery-provision',

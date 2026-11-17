@@ -1,6 +1,6 @@
 # Getting started
 
-The stack runs MySQL, Redis, the API (with its Horizon queue worker and scheduled jobs), NLP, the web app and a throwaway Keycloak for single sign-on, in standalone mode with the minimal OMOP vocabulary, a seeded admin and two Keycloak users. It provisions the collections in `customisations/provision.json` and serves each synthetic one from its own BUNNY. The full vocabulary (S3) comes later.
+The stack runs MySQL, Redis, the API (with its Horizon queue worker and scheduled jobs), NLP, the web app and a throwaway Keycloak for single sign-on, in standalone mode with the minimal OMOP vocabulary, a seeded admin and two Keycloak users. It provisions the collections in `customisations/provision.json` and serves each synthetic one from its own BUNNY. A full Athena vocabulary can be imported on top (see [Full OMOP vocabulary](#full-omop-vocabulary)).
 
 No local Kubernetes cluster? See [Running with Docker Compose](alternatives/docker-compose.md) for a community alternative.
 
@@ -239,6 +239,26 @@ If you forward the API or the web to other host ports, set `api.appUrl` and `web
 
 The Passport keys come from the Secret through `PASSPORT_PRIVATE_KEY` and `PASSPORT_PUBLIC_KEY`, so tokens survive pod restarts. A2's `app:bootstrap` will replace the script.
 
+## Full OMOP vocabulary
+
+By default the API and NLP use the minimal vocabulary the init Job seeds, about 3,900 concepts. To search the full vocabulary, download it from [Athena](https://athena.ohdsi.org) and point the stack at it. The stack never ships vocabulary files: Athena needs an account, and some vocabularies, such as CPT4, are licensed.
+
+1. In Athena, choose the vocabularies and download the bundle.
+2. Unzip it straight into `customisations/athena/`, so that `customisations/athena/VOCABULARY.csv` exists. The folder must hold `VOCABULARY.csv` and `CONCEPT.csv`, plus whichever of `DOMAIN`, `CONCEPT_CLASS`, `RELATIONSHIP`, `CONCEPT_RELATIONSHIP`, `CONCEPT_SYNONYM`, `CONCEPT_ANCESTOR` and `DRUG_STRENGTH` you have. Missing tables are skipped. Everything in that folder except its README is git-ignored.
+3. Run `tilt up`. When `VOCABULARY.csv` is there, Tilt adds a `vocab-import` resource after `api-init` and runs it. Without it there's no import, and the minimal vocabulary stays.
+
+With Helm alone, pass `--set vocab.athena.hostPath=<absolute path>` and a longer `--timeout`, because `helm` waits for the import.
+
+The Job mounts the folder read-only. The path must exist on the Kubernetes node: Rancher Desktop mounts your macOS home folder into its VM at the same path, so anything under `/Users/<you>` works. kind needs an `extraMounts` entry for it.
+
+The Job compares the release version in `VOCABULARY.csv` (its `None` row) with the one already imported. If they match, it does nothing, so later upgrades are quick. Otherwise it replaces each table with the file's contents, `VOCABULARY` last, so a run that fails part-way is retried in full the next time. NLP picks up the new synonyms and ancestors within five minutes, with no restart. To import the same release again, for example with more vocabularies, delete its version row first:
+
+```bash
+kubectl -n cohort-discovery exec cohort-discovery-mysql-0 -- sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" omop -e "DELETE FROM vocabulary WHERE vocabulary_id = '"'"'None'"'"'"'
+```
+
+To go back to the minimal vocabulary, empty `omop.concept` and run the init Job again.
+
 ## Collections: the provision Job
 
 `provision` creates the custodians, collection hosts and collections in `customisations/provision.json` through the API, shares each collection with its `workgroups` and makes it active, so a researcher in one of those workgroups sees it straight away. It runs after the API and Keycloak are up, as a Helm `post-install`/`post-upgrade` hook, and under Tilt again whenever the file changes. It signs in as `bootstrap.adminEmail` through Keycloak (D22), so it's off when Keycloak is.
@@ -315,6 +335,7 @@ kubectl -n cohort-discovery logs job/task-cleanup-now
 | `keycloak.realmJson`, `api.claimsAccessControlPhp`, `nlp.rulesJson`, `nlp.mappingsJson`, `provision.json` | Set only by `generated/customisations.values.yaml`, from `customisations/` (see [Customisations](#customisations)) |
 | `api.extraEnv`, `nlp.extraEnv`, `web.extraEnv` | Extra non-secret environment variables |
 | `provision.enabled` | The provision Job on or off; it's off when `provision.json` isn't supplied |
+| `vocab.athena.hostPath`, `vocab.resources` | The node folder holding an Athena download, which turns on the `vocab-import` Job, and its resources |
 | `synthetic.enabled`, `synthetic.defaultSize` | Synthetic BUNNYs on or off, and the default omop-lite bundle |
 | `synthetic.bunny.*` | BUNNY polling interval, low-number suppression and rounding |
 | `synthetic.storageSize`, `synthetic.storageClassName`, `synthetic.resources`, `synthetic.bunnyResources` | The synthetic Postgres's volume, and resources |
@@ -327,6 +348,7 @@ Everything a deployer is expected to change lives in `customisations/`, one fold
 
 | Path | What | How it's used |
 |---|---|---|
+| `customisations/athena/` | An Athena vocabulary download, git-ignored (see [Full OMOP vocabulary](#full-omop-vocabulary)) | Mounted from the node by the `vocab-import` Job; Tilt only. Falls back to the minimal vocabulary |
 | `customisations/api/auth.php` | Authentication settings: password sign-in is off (see [Sign in](#sign-in)) | Mounted over the API's own |
 | `customisations/api/claimsaccesscontrol.php` | The claims mapping (see [Claims mapping](#claims-mapping)) | Mounted over the API's own |
 | `customisations/api/workgroups.php` | The workgroups the app has (see [Customising users, groups and roles](#customising-users-groups-and-roles)) | Mounted over the API's own; the init Job seeds it |
