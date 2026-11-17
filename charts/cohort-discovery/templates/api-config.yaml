@@ -1,0 +1,15 @@
+{{- $files := include "cohort-discovery.apiConfigFiles" . | fromJson }}
+{{- if $files }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cohort-discovery.name" (dict "root" . "component" "api-config") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" . "component" "api") | nindent 4 }}
+data:
+  {{- range $file, $content := $files }}
+  {{ $file }}: |
+    {{- $content | nindent 4 }}
+  {{- end }}
+{{- end }}

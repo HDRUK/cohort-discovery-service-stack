@@ -30,6 +30,7 @@ spec:
       annotations:
         checksum/scripts: {{ (.Files.Glob "files/api-init/*").AsConfig | sha256sum }}
         checksum/api-env: {{ include (print $.Template.BasePath "/api-env.yaml") . | sha256sum }}
+        checksum/api-config: {{ include "cohort-discovery.apiConfigFiles" . | sha256sum }}
     spec:
       restartPolicy: Never
       initContainers:
@@ -56,14 +57,13 @@ spec:
             - configMapRef:
                 name: {{ include "cohort-discovery.name" (dict "root" . "component" "api-env") }}
           env:
-            - name: DEMO_USER_EMAIL
+            - name: BOOTSTRAP_ADMIN_EMAIL
               value: {{ .Values.bootstrap.adminEmail | quote }}
-            - name: DEMO_RESEARCHER_EMAIL
-              value: {{ .Values.bootstrap.researcherEmail | quote }}
+            - name: BOOTSTRAP_CUSTODIAN_NAME
+              value: {{ .Values.bootstrap.custodianName | quote }}
             - name: SCHEDULER_SERVICE_ACCOUNT_NAME
               value: {{ .Values.scheduler.serviceAccountName | quote }}
-            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "DEMO_USER_PASSWORD" "key" "admin-password") | nindent 12 }}
-            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "DEMO_RESEARCHER_PASSWORD" "key" "researcher-password") | nindent 12 }}
+            {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "BOOTSTRAP_ADMIN_PASSWORD" "key" "admin-password") | nindent 12 }}
             {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "SCHEDULER_CLIENT_ID" "key" "scheduler-client-id") | nindent 12 }}
             {{- include "cohort-discovery.secretEnv" (dict "root" . "name" "SCHEDULER_CLIENT_SECRET" "key" "scheduler-client-secret") | nindent 12 }}
             {{- include "cohort-discovery.apiSecretEnv" . | nindent 12 }}
@@ -71,7 +71,13 @@ spec:
             - name: scripts
               mountPath: /stack/api-init
               readOnly: true
+            {{- if include "cohort-discovery.apiConfigFiles" . | fromJson }}
+            {{- include "cohort-discovery.apiConfigMount" . | nindent 12 }}
+            {{- end }}
       volumes:
+        {{- if include "cohort-discovery.apiConfigFiles" . | fromJson }}
+        {{- include "cohort-discovery.apiConfigVolume" . | nindent 8 }}
+        {{- end }}
         - name: scripts
           configMap:
             name: {{ $name }}-scripts

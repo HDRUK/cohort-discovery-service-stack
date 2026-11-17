@@ -1,6 +1,6 @@
 # A1. API: an image anyone can build
 
-**Repo:** `project-daphne-api` · **Depends on:** H1, D13 · **Decisions:** D2
+**Repo:** `project-daphne-api` · **Depends on:** D13 · **Decisions:** D2
 
 ## Goal
 `docker build .` works from a clean public checkout without a GitHub token, and produces an image that is safe to run as a production server.
@@ -8,6 +8,7 @@
 ## Context
 Three problems in the current build (`02-verified-facts.md`, API):
 - **Private dependencies:** `composer.json` pulls five private `hdruk/*` VCS packages, so the build needs a `github_token` secret.
+  - Update 2026-11-13: on `dev` (seen at `b257363`) `composer.json` no longer declares the private VCS packages, but the Dockerfile still reads `/run/secrets/github_token` unconditionally, so the build still fails without the secret. Step 2 is what's left.
 - **No `.dockerignore`:** with `COPY .`, a local build bakes in `.env` and `storage/oauth-*.key`.
 - **Dev defaults:** the image sets `REBUILD_DB=1` and uses a dev `php.ini`.
 

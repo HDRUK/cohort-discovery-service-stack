@@ -6,7 +6,7 @@ Compiled 2026-11-12 for H1, from the API at `v1.17.0` (the version the stack pin
 
 ## Needs attention first
 
-1. **✔ Plaintext passwords in the API's logs.** `LogHttpRequests` (`app/Http/Middleware/LogHttpRequests.php`) is global middleware. At INFO level it logs every request's full body, plus the client IP, without redaction. A password sign-in (`POST /api/auth/login`) therefore writes the email and password to the log, and SSO hand-off codes and free text typed for NLP parsing are logged the same way. The stack logs at `info` by default, and HDR UK's environments log at `debug` or `info`.
+1. **✔ Plaintext passwords in the API's logs.** `LogHttpRequests` (`app/Http/Middleware/LogHttpRequests.php`) is global middleware. At INFO level it logs every request's full body, plus the client IP, without redaction. A password sign-in (`POST /api/auth/login`) therefore writes the email and password to the log, and free text typed for NLP parsing is logged the same way. ✔ S2 confirmed that SSO sign-in puts short-lived credentials in the log too: the OIDC `code` and `state` and the logout `ticket` (in the request URI), and the single-use hand-off `code` (in the `POST /api/auth/sso/exchange` body). The stack logs at `info` by default, and HDR UK's environments log at `debug` or `info`.
 2. **✔ Request bodies kept indefinitely.** `AuditRequests` stores every request in `request_audits` with the user ID, IP address, user agent and body, removing only `password` and `token`. Nothing deletes these rows, and they're kept when a user is deleted (the user ID is set to null).
 3. **✔ Requester email sent to Slack.** The "Collection Activation Request" alert includes the requesting user's email (`app/Services/Notifications/SlackNotifier.php`). The stack doesn't configure a Slack webhook, but HDR UK's deployments may.
 4. **✔ No retention is enforced.** `config/activitylog.php` sets 365 days, but nothing schedules `activitylog:clean`, and nothing prunes `request_audits`, `nlp_query_logs` or expired Passport tokens.
@@ -35,7 +35,7 @@ Compiled 2026-11-12 for H1, from the API at `v1.17.0` (the version the stack pin
 | Map tiles and help videos | OpenStreetMap; YouTube embeds | web `src/config/map.ts`, `src/utils/youtube.ts` | **Yes**: IP and user agent to OpenStreetMap; IP and possibly cookies to YouTube | Set by the third party |
 | User list with identities, searchable by name and email | `GET /api/v1/users`, gated by policy | `app/Http/Controllers/Api/V1/UserController.php` | To authorised callers | n/a |
 | Generated passwords printed by the user import commands | Operator's terminal | `app/Console/Commands/ImportUsersFromCsv.php`, `ImportAdminUsers.php` | Terminal and shell history | n/a |
-| Keycloak users (once S2 lands): fictional test users with verified email, groups and roles | Keycloak | `docs/tickets/S2-stack-keycloak.md` | No | Throwaway |
+| Keycloak users: email, name, password hash, groups and roles; plus sessions and events. The stack's realm has fictional users only | Keycloak `dev-file` store on a PVC that `tilt down` keeps | `charts/cohort-discovery/templates/keycloak.yaml`, `customisations/keycloak/realm.json` | No | Until the volume is deleted |
 
 ## Not found
 

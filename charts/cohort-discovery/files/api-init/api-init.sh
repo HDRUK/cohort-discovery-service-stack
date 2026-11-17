@@ -31,7 +31,7 @@ php artisan migrate --force
 php artisan migrate --database=omop --path=database/migrations_omop --force
 php artisan deploy:run
 
-seed_when_table_empty mysql workgroups WorkgroupSeeder
+php artisan db:seed --class=WorkgroupSeeder --force
 seed_when_table_empty mysql roles RolesAndPermissionsSeeder
 php artisan db:seed --class=StateSeeder --force
 php artisan db:seed --class=FeatureSeeder --force
@@ -39,7 +39,12 @@ php artisan db:seed --class=PersonalAccessClientSeeder --force
 
 seed_when_table_empty omop concept MinimalOmopSeeder --database=omop
 
-seed_when_table_empty mysql users StandaloneDemoSeeder
+if [ "$(row_count mysql users)" = "0" ]; then
+  echo "api-init: users is empty, creating the admin and its custodian"
+  php "${scripts_dir}/ensure-admin.php"
+else
+  echo "api-init: users already has rows, leaving the admin and custodians alone"
+fi
 
 php "${scripts_dir}/ensure-scheduler-account.php"
 

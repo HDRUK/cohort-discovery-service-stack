@@ -12,19 +12,38 @@ if k8s_context() not in LOCAL_CONTEXTS:
 
 allow_k8s_contexts(k8s_context())
 
+def slug(name):
+    result = ''
+    for character in name.lower().elems():
+        if ('a' <= character and character <= 'z') or ('0' <= character and character <= '9'):
+            result += character
+        elif not result.endswith('-'):
+            result += '-'
+    return result.strip('-')
+
 RELEASE = 'cohort-discovery'
 NAMESPACE = 'cohort-discovery'
 SECRETS_VALUES = 'generated/secrets.values.yaml'
+CUSTOMISATIONS_VALUES = 'generated/customisations.values.yaml'
+CHART_CUSTOMISATIONS = ['customisations/api', 'customisations/keycloak', 'customisations/nlp']
 
 WEB_HOST_PORT = str(int(os.getenv('CDS_WEB_PORT', '3000')))
 API_HOST_PORT = str(int(os.getenv('CDS_API_PORT', '8100')))
 NLP_HOST_PORT = str(int(os.getenv('CDS_NLP_PORT', '5001')))
+KEYCLOAK_HOST_PORT = str(int(os.getenv('CDS_KEYCLOAK_PORT', '8180')))
+KEYCLOAK_ENABLED = os.getenv('CDS_KEYCLOAK_ENABLED', 'true') != 'false'
+ATHENA_CUSTOMISATION = 'customisations/athena'
+ATHENA_PATH = os.path.abspath(ATHENA_CUSTOMISATION) if os.path.exists(ATHENA_CUSTOMISATION + '/VOCABULARY.csv') else ''
 API_HOST_URL = 'http://localhost:' + API_HOST_PORT
+WEB_HOST_URL = 'http://localhost:' + WEB_HOST_PORT
 
 if not os.getenv('GITHUB_TOKEN', ''):
     fail('GITHUB_TOKEN is not set. The API image needs it to install the private hdruk/* composer packages (until A1). Run: export GITHUB_TOKEN=$(gh auth token)')
 
 local('scripts/local-secrets.sh', quiet=True)
+local('scripts/customisations-values.sh', quiet=True)
+for path in CHART_CUSTOMISATIONS + [ATHENA_CUSTOMISATION + '/VOCABULARY.csv', 'customisations/web/branding/assets/logo.svg', 'customisations/web/branding/assets/icon.svg', 'customisations/provision.json', 'scripts/customisations-values.sh']:
+    watch_file(path)
 local(
     'kubectl --context "$CONTEXT" create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl --context "$CONTEXT" apply -f -',
     quiet=True,
@@ -56,7 +75,7 @@ custom_build(
         '--build-arg %s=%s' % (name, shlex.quote(value))
         for name, value in WEB_BUILD_ARGS.items()
     ]),
-    deps=['services/web', 'config/branding', 'scripts/build-web.sh'],
+    deps=['services/web', 'customisations/web/branding', 'scripts/build-web.sh'],
     ignore=['services/web/node_modules', 'services/web/.next'],
 )
 
@@ -64,18 +83,62 @@ k8s_yaml(helm(
     'charts/cohort-discovery',
     name=RELEASE,
     namespace=NAMESPACE,
-    values=[SECRETS_VALUES],
-    set=['api.appUrl=' + API_HOST_URL],
+    values=[SECRETS_VALUES, CUSTOMISATIONS_VALUES],
+    set=[
+        'api.appUrl=' + API_HOST_URL,
+        'web.appUrl=' + WEB_HOST_URL,
+        'keycloak.enabled=' + str(KEYCLOAK_ENABLED).lower(),
+        'provision.enabled=' + str(KEYCLOAK_ENABLED).lower(),
+        'keycloak.port=' + KEYCLOAK_HOST_PORT,
+        'vocab.athena.hostPath=' + ATHENA_PATH,
+    ],
 ))
 
 k8s_resource('cohort-discovery-mysql', new_name='mysql', labels=['data'])
 k8s_resource('cohort-discovery-redis', new_name='redis', labels=['data'])
+if KEYCLOAK_ENABLED:
+    k8s_resource(
+        'cohort-discovery-keycloak',
+        new_name='keycloak',
+        labels=['auth'],
+        port_forwards=[KEYCLOAK_HOST_PORT + ':' + KEYCLOAK_HOST_PORT],
+    )
 k8s_resource(
     'cohort-discovery-api-init',
     new_name='api-init',
     labels=['init'],
     resource_deps=['mysql', 'redis'],
 )
+if ATHENA_PATH:
+    k8s_resource(
+        'cohort-discovery-vocab-import',
+        new_name='vocab-import',
+        labels=['init'],
+        resource_deps=['api-init'],
+    )
+if KEYCLOAK_ENABLED and os.path.exists('customisations/provision.json'):
+    k8s_resource(
+        'cohort-discovery-provision',
+        new_name='provision',
+        labels=['init'],
+        resource_deps=['api', 'keycloak'],
+    )
+    synthetic_collections = [
+        slug(collection['name'])
+        for custodian in decode_json(read_file('customisations/provision.json'))['custodians']
+        for host in custodian.get('hosts', [])
+        for collection in host.get('collections', [])
+        if collection.get('synthetic', False)
+    ]
+    if synthetic_collections:
+        k8s_resource('cohort-discovery-synthetic-db', new_name='synthetic-db', labels=['synthetic'])
+    for collection in synthetic_collections:
+        k8s_resource(
+            'cohort-discovery-bunny-' + collection,
+            new_name='bunny-' + collection,
+            labels=['synthetic'],
+            resource_deps=['synthetic-db', 'provision'],
+        )
 k8s_resource(
     'cohort-discovery-api',
     new_name='api',

@@ -7,3 +7,6 @@ generated/
 *.key
 .claude/settings.local.json
 pr-descriptions/
+__pycache__/
+customisations/athena/*
+!customisations/athena/README.md

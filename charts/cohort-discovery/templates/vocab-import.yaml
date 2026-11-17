@@ -1,0 +1,62 @@
+{{- with .Values.vocab.athena.hostPath }}
+{{- $root := $ -}}
+{{- $name := include "cohort-discovery.name" (dict "root" $root "component" "vocab-import") -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-scripts
+  namespace: {{ $root.Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" $root "component" "vocab-import") | nindent 4 }}
+data:
+  {{- ($root.Files.Glob "files/vocab-import/*").AsConfig | nindent 2 }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  namespace: {{ $root.Release.Namespace }}
+  labels:
+    {{- include "cohort-discovery.labels" (dict "root" $root "component" "vocab-import") | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        {{- include "cohort-discovery.labels" (dict "root" $root "component" "vocab-import") | nindent 8 }}
+      annotations:
+        checksum/scripts: {{ ($root.Files.Glob "files/vocab-import/*").AsConfig | sha256sum }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: vocab-import
+          image: {{ include "cohort-discovery.image" $root.Values.images.api }}
+          imagePullPolicy: {{ $root.Values.imagePullPolicy }}
+          command: ["bash", "/stack/vocab-import/vocab-import.sh"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "cohort-discovery.name" (dict "root" $root "component" "api-env") }}
+          env:
+            {{- include "cohort-discovery.apiSecretEnv" $root | nindent 12 }}
+          resources:
+            {{- toYaml $root.Values.vocab.resources | nindent 12 }}
+          volumeMounts:
+            - name: scripts
+              mountPath: /stack/vocab-import
+              readOnly: true
+            - name: athena
+              mountPath: /vocab
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ $name }}-scripts
+        - name: athena
+          hostPath:
+            path: {{ . }}
+            type: Directory
+{{- end }}

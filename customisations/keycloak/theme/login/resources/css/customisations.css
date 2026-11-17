@@ -1,0 +1,64 @@
+:root {
+    --cds-ink: #1B2631;
+    --cds-ink-light: #3A4A5A;
+    --cds-petrol: #2F5D62;
+    --cds-petrol-dark: #1F4044;
+    --cds-amber: #E8A33D;
+    --cds-link: #1F5F99;
+    --cds-text: #1F2A33;
+
+    --pf-v5-global--primary-color--100: var(--cds-petrol);
+    --pf-v5-global--primary-color--200: var(--cds-petrol-dark);
+    --pf-v5-global--active-color--100: var(--cds-petrol);
+    --pf-v5-global--link--Color: var(--cds-link);
+    --pf-v5-global--link--Color--hover: var(--cds-petrol-dark);
+    --pf-v5-global--Color--100: var(--cds-text);
+    --pf-v5-global--FontFamily--text: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --pf-v5-global--FontFamily--heading: var(--pf-v5-global--FontFamily--text);
+
+    --keycloak-card-top-color: var(--cds-amber);
+}
+
+.login-pf body {
+    background: radial-gradient(ellipse at top, var(--cds-ink-light) 0%, var(--cds-ink) 60%) fixed;
+    color: var(--cds-text);
+}
+
+#kc-header-wrapper {
+    background: url("../img/logo.svg") no-repeat center / contain;
+    width: 280px;
+    max-width: 100%;
+    height: 40px;
+    margin: 0 auto 16px;
+    font-size: 0;
+    color: transparent;
+    overflow: hidden;
+}
+
+.pf-v5-c-login__container {
+    grid-template-columns: minmax(0, 34rem);
+    padding-inline: 16px;
+}
+
+.pf-v5-c-login__main {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.pf-v5-c-login__main-header {
+    border-top-width: 6px;
+}
+
+.pf-v5-c-button.pf-m-primary {
+    --pf-v5-c-button--m-primary--BackgroundColor: var(--cds-petrol);
+    --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--cds-petrol-dark);
+    --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--cds-petrol-dark);
+    --pf-v5-c-button--m-primary--active--BackgroundColor: var(--cds-petrol-dark);
+    --pf-v5-c-button--BorderRadius: 6px;
+}
+
+.pf-v5-c-form-control > :is(input, select, textarea):focus-visible {
+    outline: 2px solid var(--cds-petrol);
+    outline-offset: -2px;
+}
