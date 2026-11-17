@@ -1,6 +1,7 @@
 import { ThemeOptions } from "@mui/material/styles";
 
 const ink = "#1B2631";
+const steel = "#46627A";
 const petrol = "#2F5D62";
 const amber = "#E8A33D";
 
@@ -13,9 +14,9 @@ const brandingTheme: ThemeOptions = {
       contrastText: "#FFFFFF",
     },
     secondary: {
-      main: ink,
-      light: "#3A4A5A",
-      dark: "#10181F",
+      main: steel,
+      light: "#6E8799",
+      dark: "#2F4657",
       contrastText: "#FFFFFF",
     },
     success: {
