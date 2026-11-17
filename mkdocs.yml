@@ -116,7 +116,6 @@ nav:
   - Deploy to a cluster:
       - Install with Helm: deploying/index.md
       - Connect a collection: deploying/connect-a-collection.md
-  - Develop the web app: developing/web.md
   - FAQ: faq.md
   - Reference:
       - Chart values: reference/values.md

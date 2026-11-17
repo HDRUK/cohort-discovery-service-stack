@@ -53,7 +53,7 @@ No secret has a value here. Secrets go in `generated/secrets.values.yaml` under 
 | `web.cookieTokenName` | `cds_stack_token` | The sign-in cookie's name, so the stack doesn't share a sign-in with other copies of the web app on the same host |
 | `web.extraEnv`, `web.resources` | | Extra environment variables; requests and memory limit |
 
-The web's server reads `API_BASE_URL` at run time: the chart sets it from `api.appUrl` when sign-in is on, otherwise to the API's in-cluster address. The few settings built into the image are in [Develop the web app](../developing/web.md#build-time-or-run-time).
+The web's server reads `API_BASE_URL` at run time: the chart sets it from `api.appUrl` when sign-in is on, otherwise to the API's in-cluster address. Which web settings are built into the image is in the service docs' [web page](https://hdruk.github.io/cohort-discovery-service-docs/developers/web/).
 
 ## Keycloak
 
