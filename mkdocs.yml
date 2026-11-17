@@ -1,0 +1,126 @@
+site_name: Cohort Discovery Service stack
+site_description: Run the Cohort Discovery Service in standalone mode on Kubernetes
+site_url: https://hdruk.github.io/cohort-discovery-service-stack/
+repo_url: https://github.com/HDRUK/cohort-discovery-service-stack
+repo_name: HDRUK/cohort-discovery-service-stack
+edit_uri: edit/main/docs/
+docs_dir: docs
+
+exclude_docs: |
+  /README.md
+  /01-decisions.md
+  /02-verified-facts.md
+  /web-variables.md
+  /tickets/
+
+validation:
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: info
+    unrecognized_links: warn
+  nav:
+    omitted_files: warn
+    not_found: warn
+
+theme:
+  name: material
+  palette:
+    scheme: hdruk
+  logo: images/logo.jpg
+  favicon: images/favicon.png
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.path
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+    - content.action.edit
+    - content.action.view
+
+extra_css:
+  - stylesheets/custom.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/HDRUK
+      name: HDR UK on GitHub
+    - icon: fontawesome/solid/globe
+      link: https://www.hdruk.ac.uk
+      name: HDR UK website
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - def_list
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Overview: overview.md
+  - Getting started: getting-started.md
+  - Running with Helm: running/helm.md
+  - Installing beyond a laptop: installing/beyond-a-laptop.md
+  - Customising:
+      - Overview: customising/index.md
+      - Identity and access: customising/identity-and-access.md
+      - Branding: customising/branding.md
+      - Collections: customising/collections.md
+      - Vocabulary: customising/vocabulary.md
+      - NLP rules: customising/nlp.md
+  - Operations:
+      - Troubleshooting: operations/troubleshooting.md
+      - Maintaining: operations/maintaining.md
+  - Reference:
+      - Chart values: reference/values.md
+      - Internals: reference/internals.md
+  - More:
+      - Docker Compose: alternatives/docker-compose.md
+      - Personal data: data-protection/personal-data-inventory.md

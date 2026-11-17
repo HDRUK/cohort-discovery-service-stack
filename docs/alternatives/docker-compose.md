@@ -16,11 +16,11 @@ This repo runs the Cohort Discovery Service on Kubernetes with Helm and Tilt. If
 |---|---|---|
 | Needs | A local Kubernetes cluster, Helm, Tilt | Docker with Compose |
 | Images | Built from the pinned submodules | Prebuilt from the latest releases |
-| Synthetic data | Planned (S5) | Included |
-| Keycloak | Planned (S2) | Included |
+| Synthetic data | Included, one BUNNY per synthetic collection | Included |
+| Keycloak | Included, the only way to sign in | Included, alongside password sign-in |
 | Credentials | Generated per install, never committed | Fixed values committed in `example.env` and `docker-compose.yml` |
 | Host ports | Web, API and NLP only, configurable ([Host ports](../getting-started.md#host-ports)) | Fixed, and also publishes MySQL on 3306, Redis on 6379 and Postgres on 5432 |
-| Beyond a laptop | The same chart, with production values (S6) | Local demo only |
+| Beyond a laptop | The same chart, with example values for shared clusters ([Installing beyond a laptop](../installing/beyond-a-laptop.md)) | Local demo only |
 
 Use cd-build for a quick look on one machine. Use this stack to develop against, or as the starting point for a real deployment.
 

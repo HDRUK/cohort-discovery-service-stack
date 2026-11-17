@@ -1,15 +1,15 @@
 # Getting started
 
-The stack runs MySQL, Redis, the API (with its Horizon queue worker and scheduled jobs), NLP, the web app and a throwaway Keycloak for single sign-on, in standalone mode with the minimal OMOP vocabulary, a seeded admin and two Keycloak users. It provisions the collections in `customisations/provision.json` and serves each synthetic one from its own BUNNY. A full Athena vocabulary can be imported on top (see [Full OMOP vocabulary](#full-omop-vocabulary)).
+This page runs the whole stack on your laptop with Tilt: the services, a throwaway Keycloak with three fictional users, the minimal OMOP vocabulary, and two synthetic collections that answer queries straight away. To run it without Tilt, see [Running with Helm](running/helm.md). To run it on a shared cluster, see [Installing beyond a laptop](installing/beyond-a-laptop.md).
 
-No local Kubernetes cluster? See [Running with Docker Compose](alternatives/docker-compose.md) for a community alternative.
+No local Kubernetes cluster? [Docker Compose](alternatives/docker-compose.md) describes a community alternative.
 
 ## You need
 
-- A local Kubernetes cluster: Rancher Desktop (with the Docker runtime), Docker Desktop, OrbStack, minikube, or kind/k3d with a cluster named `cohort-discovery`. Allow it about 4 CPUs and 8 GB of memory.
-- `kubectl`, `helm` 3, `tilt` and `openssl`.
-- Access to HDR UK's private `hdruk/*` composer packages, to build the API image (until A1). The build reads a GitHub token from `GITHUB_TOKEN`; the GitHub CLI can supply it.
-- Ports 3000, 8100, 5001 and 8180 free on the host, or other ports chosen as in [Host ports](#host-ports). Tilt forwards to them, and if a local dev server of the web, API or NLP is listening on `*:<port>`, `localhost` can reach either one, depending on whether it resolves to IPv4 or IPv6. Stop local dev servers first, or move the stack to other ports, and stop anything that polls them, such as BUNNY containers from `somop run`.
+- **A local Kubernetes cluster** with about 4 CPUs and 8 GB of memory: Rancher Desktop (with the Docker runtime), Docker Desktop, OrbStack, minikube, or kind or k3d with a cluster named `cohort-discovery`. Tilt refuses any other context, so it can't touch a shared cluster by mistake.
+- **`kubectl`, `helm` 3, `tilt` and `openssl`.**
+- **For now, a GitHub token that can read HDR UK's private `hdruk/*` composer packages.** The API image installs them at build time. The GitHub CLI can supply the token. Removing this requirement is on the [tracker](https://github.com/HDRUK/cohort-discovery-service-stack/blob/main/docs/README.md).
+- **Ports 3000, 8100, 5001 and 8180 free**, or other ports chosen as in [Host ports](#host-ports). Stop local development servers of the web, API or NLP first, and anything that polls them, such as BUNNY containers from `somop run`.
 
 ## Clone
 
@@ -18,465 +18,115 @@ git clone --recurse-submodules https://github.com/HDRUK/cohort-discovery-service
 cd cohort-discovery-service-stack
 ```
 
-If you cloned without `--recurse-submodules`, run `git submodule update --init`.
+If you cloned without `--recurse-submodules`, run `git submodule update --init`. `git submodule status` shows which release of each service is pinned.
 
-`services/web`, `services/api` and `services/nlp` are pinned to release tags. `git submodule status` shows which. For now `services/api` is the exception: it's pinned to an unreleased commit of the API that adds list-valued claim mappings and a configurable workgroup list (D5).
-
-## Run with Tilt
+## Start it
 
 ```bash
 export GITHUB_TOKEN=$(gh auth token)
 tilt up
 ```
 
-On load, the Tiltfile:
+Press space to open the Tilt UI at http://localhost:10350. On start, Tilt:
 
 1. refuses any context that isn't a known local cluster;
-2. runs `scripts/local-secrets.sh`, which writes random credentials to `generated/secrets.values.yaml` (mode 0600, git-ignored) the first time. After that it only adds keys the file is missing, such as the Keycloak ones for a file written before S2, and never changes or prints existing values;
-3. creates the `cohort-discovery` namespace;
-4. builds the API, NLP and web images from `services/`, the web with the stack's branding (see [Branding](#branding)), and installs the chart.
+2. writes random credentials to `generated/secrets.values.yaml` the first time (git-ignored, mode 0600). Later runs only add keys the file is missing, and never change or print existing ones;
+3. turns `customisations/` into chart values in `generated/customisations.values.yaml`;
+4. builds the API, NLP and web images from `services/`, the web with the branding in `customisations/web/branding/`;
+5. installs the chart into the `cohort-discovery` namespace.
 
 The first build takes a while: the API and web images each take several minutes. The token reaches the API build only as a BuildKit secret, never on disk or in an image layer.
 
-Resources start in this order: `mysql`, `redis` and `keycloak`, then `api-init`, then `api`, `queue` and `nlp`, then `web` and the `scheduler-*` CronJobs. The chart enforces the same order on its own with init containers, so a plain `helm install` behaves the same.
-
-When everything is green:
+When every resource is green:
 
 | URL | What |
 |---|---|
-| http://localhost:3000 | web |
-| http://localhost:8100 | API (`/up` is its health check) |
+| http://localhost:3000 | The web app |
+| http://localhost:8100 | The API (`/up` is its health check) |
 | http://localhost:5001/health/ready | NLP readiness |
-| http://localhost:8180 | Keycloak (admin console at `/admin`, user `admin`) |
+| http://localhost:8180 | Keycloak (admin console at `/admin`) |
+| http://localhost:10350 | The Tilt UI, with each resource's logs |
 
-### Host ports
+Tilt picks up changes as you save: to `customisations/`, to the chart and to the service source.
 
-To run alongside a development stack that already uses 3000, 8100 and 5001, choose other host ports before `tilt up`:
+## Sign in
+
+Open http://localhost:3000 and choose **Single Sign-On**. Email and password sign-in is turned off, so everyone signs in through Keycloak. The stack has three fictional users:
+
+| User | Is | Sees |
+|---|---|---|
+| `admin@example.com` | An admin, and a member of "Demo Custodian" | Everything |
+| `researcher@example.com` (Jane Doe) | A researcher in the `UK-RESEARCH` workgroup | Both synthetic collections |
+| `custodian@example.com` (John Smith) | A custodian user of "Demo Custodian" | That custodian's hosts and collections |
+
+### Credentials
+
+Every password is generated for your install. They're in `generated/secrets.values.yaml` and in the cluster Secret `cohort-discovery-secrets`. To print one:
+
+```bash
+kubectl -n cohort-discovery get secret cohort-discovery-secrets -o jsonpath='{.data.<key>}' | base64 -d; echo
+```
+
+| For | `<key>` |
+|---|---|
+| `admin@example.com` | `admin-password` |
+| `researcher@example.com` | `keycloak-user-researcher-password` |
+| `custodian@example.com` | `keycloak-user-custodian-password` |
+| The Keycloak admin console (user `admin`) | `keycloak-admin-password` |
+| MySQL `root` | `mysql-root-password` |
+
+The BUNNYs' API credentials are in the Secret `bunny-<host>`, written by the provision Job (see [Collections](customising/collections.md)).
+
+## Run a first query
+
+1. Sign in as `researcher@example.com`.
+2. Build a query, for example people with a condition, or type one in plain words and let the NLP turn it into a query.
+3. Run it. "Synthetic Collection A" and "Synthetic Collection B" each answer within a few seconds.
+
+Counts are rounded to the nearest 10, and counts below 10 are hidden, as a real collection would do. The synthetic data describes no real people. Collection A has 1,000 synthetic people and Collection B has 100.
+
+If no collections appear, or queries never finish, see [Troubleshooting](operations/troubleshooting.md).
+
+## Host ports
+
+To run beside a development stack that already uses 3000, 8100 and 5001, choose other host ports before `tilt up`:
 
 ```bash
 export CDS_WEB_PORT=13000 CDS_API_PORT=18100 CDS_NLP_PORT=15001 CDS_KEYCLOAK_PORT=18180
 tilt up
 ```
 
-The web, API and NLP containers keep their own ports; only the forwards change. Keycloak is the exception: it listens inside the cluster on the same port as its forward (see [Single sign-on](#single-sign-on-keycloak)). `CDS_API_PORT` also sets the API's `APP_URL` and the web image's `API_BASE_URL` and `NEXT_PUBLIC_TASK_URL`, because the browser calls the API directly. Changing it rebuilds the web image. Use the same values for the URLs above and below.
+Use the same ports in the URLs above. Changing `CDS_API_PORT` rebuilds the web image, because the browser calls the API directly and the web is built with its URL.
 
-Browsers share cookies across ports on the same host, so the web app names its session cookie `cds_stack_token` (`web.cookieTokenName`) rather than the default `token`. Without that, a development web app on `localhost` and the stack would overwrite each other's sign-in, and the stack's API would reject the other's token with `Token signature mismatch`.
+Browsers share cookies across ports on the same host, so the stack's web app names its sign-in cookie `cds_stack_token` rather than the default `token`. A development web app on `localhost` and the stack can then both be signed in at once.
 
-### Sign in
-
-Everyone signs in through "Single Sign-On" with Keycloak. Email and password sign-in is off (`password_login` in `customisations/api/auth.php`): the login page doesn't offer it, and the API refuses `POST /api/auth/login` with 403. With Keycloak turned off there's no SSO, so the API offers password sign-in again and nobody is locked out.
-
-The admin is `admin@example.com`. The init Job seeds it in the app, and it's also a Keycloak user with the same email, so its first SSO sign-in links to the seeded account (Keycloak marks the email verified). Its Keycloak password is the admin password from the stack's Secret:
+## Without Keycloak
 
 ```bash
-kubectl -n cohort-discovery get secret cohort-discovery-secrets -o jsonpath='{.data.admin-password}' | base64 -d; echo
+CDS_KEYCLOAK_ENABLED=false tilt up
 ```
 
-To turn password sign-in back on, set `'enabled' => true` under `password_login` in `customisations/api/auth.php`. Then, to check the API directly:
+Single sign-on is then off, the API offers email and password sign-in again (as `admin@example.com` with the admin password), and the provision Job and synthetic collections are off too, because the Job signs in through Keycloak.
 
-```bash
-curl -s -X POST http://localhost:8100/api/auth/login \
-  -H 'Content-Type: application/json' -H 'Accept: application/json' \
-  -d "{\"email\":\"admin@example.com\",\"password\":\"$(kubectl -n cohort-discovery get secret cohort-discovery-secrets -o jsonpath='{.data.admin-password}' | base64 -d)\"}"
-```
+## Stop, restart and reset
 
-### Single sign-on (Keycloak)
+`tilt down` removes everything except the namespace, three volumes, MySQL (`cohort-discovery-mysql-data`), Keycloak (`cohort-discovery-keycloak-data`) and the synthetic data (`cohort-discovery-synthetic-db-data`), and the BUNNY Secrets `bunny-<host>` the provision Job wrote. The next `tilt up` finds the same data, and the setup Jobs run again without changing anything. The volume for uploaded distribution files is deleted; the BUNNYs upload them again on their next schedule.
 
-Keycloak runs by default, with the realm `cohort-discovery-service` imported on its first start. The login page offers "Single Sign-On" only (see [Sign in](#sign-in)). The realm's client and settings come from `customisations/keycloak/realm.json`; its groups, realm roles and users come from `keycloak.groups`, `keycloak.roles` and `keycloak.users` in the values (see [Customising users, groups and roles](#customising-users-groups-and-roles)). By default there are three fictional users:
-
-| User | Keycloak groups | Realm role | Becomes in the app on first sign-in |
-|---|---|---|---|
-| `admin@example.com` (Demo Admin) | `Demo Custodian`, `default` | `platform-admin` | the seeded admin: role `admin` (and `user`); custodian "Demo Custodian" |
-| `researcher@example.com` (Jane Doe) | `breathe`, `default` | `researcher` | workgroup `UK-RESEARCH`; role `user` |
-| `custodian@example.com` (John Smith) | `Demo Custodian`, `default` | `data-custodian` | no workgroups; roles `custodian`, `user`; custodian "Demo Custodian" |
-
-The admin is in `Demo Custodian` because custodian sync is authoritative: without the group, its first sign-in would remove it from the custodian the init Job gave it. The researcher and custodian aren't accounts the stack seeds, so the API creates each one the first time it signs in through Keycloak. The custodian user joins "Demo Custodian" only because the init Job seeded a custodian with exactly that name (`bootstrap.custodianName`): in standalone mode the API links SSO users to existing custodians by name and never creates one (A6).
-
-Each user names a `passwordKey`. The password is that key in `generated/secrets.values.yaml` (`adminPassword`, `researcherPassword` and `custodianPassword` by default; the admin shares the init Job's admin password), and in the Secret as `keycloak-user-<key in kebab case>`:
-
-```bash
-kubectl -n cohort-discovery get secret cohort-discovery-secrets -o jsonpath='{.data.keycloak-user-researcher-password}' | base64 -d; echo
-```
-
-The client secret (`keycloakClientSecret`) and the Keycloak console's `admin` password (`keycloakAdminPassword`) are in the same file; no password is in `values.yaml`. The realm reads them, and the URLs, from `${CDS_*}` placeholders that Keycloak fills from its environment at import.
-
-Keycloak is authoritative for access (D4): on every SSO sign-in, the API replaces the user's workgroups, roles and custodians with what the ID token's `groups` and `roles` claims say. Change membership in the Keycloak console, then sign in again. One exception: a user with no groups at all gets no `groups` claim, and the API reads a missing claim as "no information", so their workgroups stay as they were. To keep the claim present, the chart puts every user in `keycloak.groups` into `keycloak.defaultGroup` (`default`, which maps to the `DEFAULT` workgroup every user has anyway) and makes it the realm's default group for users created in the console (D20). If someone removes that group too, removing their last other group won't take effect until A7 lands.
-
-The browser and the API must reach Keycloak at the same URL, `http://localhost:<CDS_KEYCLOAK_PORT>`. Keycloak listens on that port inside the cluster, and the API pod has a small `socat` container forwarding its own `localhost:<port>` to the Keycloak Service. In the same way, the web pod forwards `localhost:<CDS_API_PORT>` to the API, because the web passes the API URL to the browser for the SSO button and the sign-out redirect.
-
-The realm is imported only when Keycloak's volume is new, so changes to `realm.json`, the ports or the passwords don't reach an existing realm. To re-import it:
+To start from scratch, delete the volumes and the generated secrets together:
 
 ```bash
 tilt down
-kubectl -n cohort-discovery delete pvc cohort-discovery-keycloak-data
+kubectl -n cohort-discovery delete pvc cohort-discovery-mysql-data cohort-discovery-keycloak-data cohort-discovery-synthetic-db-data
+rm generated/secrets.values.yaml
 tilt up
 ```
 
-Users keep the same Keycloak IDs across re-imports, because the chart derives each ID from the realm name and the username, so the API's links to them still match. Changing a user's username (by default its email) gives it a new ID.
+Delete the secrets file and the volumes together, or neither. MySQL, Keycloak and the synthetic Postgres keep the passwords they were first given, so new credentials won't match old data.
 
-To run without Keycloak, set `CDS_KEYCLOAK_ENABLED=false` before `tilt up`, or pass `--set keycloak.enabled=false` to Helm. SSO is then off and only email and password sign-in is offered.
+To remove the stack completely, run the reset above without `tilt up`, then `kubectl delete namespace cohort-discovery`.
 
-### Customising users, groups and roles
+## Next
 
-`keycloak.groups` and `keycloak.roles` list the realm's groups and realm roles; `keycloak.users` lists its users. Each user's `groups` and `realmRoles` must be in those lists, or the render fails and names the user. `username` defaults to `email`. For example, in a values file passed with `-f`:
-
-```yaml
-bootstrap:
-  custodianName: Example Health Board
-keycloak:
-  roles: [researcher, data-custodian]
-  groups: [default, ukri, Example Health Board]
-  users:
-    - email: alex.taylor@example.com
-      firstName: Alex
-      lastName: Taylor
-      groups: [Example Health Board]
-      realmRoles: [data-custodian]
-      passwordKey: alexTaylorPassword
-    - email: sam.jones@example.com
-      firstName: Sam
-      lastName: Jones
-      groups: [ukri]
-      realmRoles: [researcher]
-      passwordKey: samJonesPassword
-```
-
-Every user is also put in `keycloak.defaultGroup` (`default`), which must be in `keycloak.groups`. Set it to `""` to turn that off.
-
-Then add each new `passwordKey` to `generated/secrets.values.yaml`, under `secrets:`, with a password of your choosing. `scripts/local-secrets.sh` generates only the default users' keys; a user whose key is missing fails the render with a message that names the key.
-
-A Keycloak name only has an effect in the app if the API maps it:
-
-- A group becomes a workgroup only if `workgroup_mappings` in `customisations/api/claimsaccesscontrol.php` maps a workgroup to it. A workgroup can take one group or a list: `'uk-research' => ['ukri', 'ncs', 'breathe']` gives `UK-RESEARCH` to anyone in any of the three. One group can also give several workgroups (`gsk` gives `UK-INDUSTRY` and `NON-UK-INDUSTRY`). Other groups, including `default`, give no workgroup. The stack's file names its Keycloak groups and roles differently from the app's on purpose, to show the mapping.
-- The workgroup itself must already exist in the app. Signing in never creates one, however much the claims are trusted. The workgroups are listed in `customisations/api/workgroups.php`: the stack seeds `UK-RESEARCH`, `UK-INDUSTRY`, `NON-UK-RESEARCH`, `NON-UK-INDUSTRY` and `NHS-SDE`, and leaves out the API's `ADMIN`, `CUSTODIAN`, `DEFAULT` and `OTHER` (the file says why). To add one, list it there. The init Job creates any that are missing on every run, matching names case-insensitively, and never deletes or renames one, so removing a name from the list doesn't remove the workgroup.
-- A realm role takes effect only if `role_mappings` maps one of the API's roles (`admin`, `user`, `custodian`) to it. The stack maps them to `platform-admin`, `researcher` and `data-custodian`.
-- A group also links the user to a custodian with exactly the same name, if one exists. Above, `Example Health Board` does both jobs only because `bootstrap.custodianName` creates that custodian.
-
-To change the mappings, edit that file (see [Claims mapping](#claims-mapping)).
-
-To change the realm's client or settings, edit `customisations/keycloak/realm.json`. The chart always replaces its `groups`, `roles`, `users` and `defaultGroups` with `keycloak.groups`, `keycloak.roles`, `keycloak.users` and `keycloak.defaultGroup`, so set those in the values, not in the file. Keep the realm name `cohort-discovery-service` and the client ID `cohort-discovery-service-api`.
-
-Changes reach Keycloak only on a fresh import; see above.
-
-### Claims mapping
-
-`customisations/api/claimsaccesscontrol.php` is mounted over the API's `config/claimsaccesscontrol.php` in the API, queue and init containers (D9). It's based on the API's own file at the pinned tag. Its `workgroup_mappings` and `role_mappings` values are the Keycloak group and role names, and its `sync` section sets how each sign-in applies them: workgroups, roles and custodians are synced on every sign-in and replace what the user had. Every value is written into the file rather than read from env, and the comments list the other options. To change names or policy, edit it (see [Customisations](#customisations)).
-
-The API's own copy reads the same settings from `CLAIM_SYNC_*` and similar env variables. They have no effect while this file is mounted, and the chart doesn't set them. When the API submodule moves to a new tag, diff the file against the new upstream one.
-
-To check what the API sees:
-
-```bash
-kubectl -n cohort-discovery exec deploy/cohort-discovery-api -c api -- \
-  php artisan tinker --execute="dump(config('claimsaccesscontrol.workgroup_mappings'))"
-```
-
-### Stop and restart
-
-`tilt down` removes everything except the namespace and the MySQL and Keycloak volumes (`tilt.dev/down-policy: keep`), so the next `tilt up` finds the same data. The init Job runs again and changes nothing.
-
-To start from scratch, delete the volume as well:
-
-```bash
-tilt down
-kubectl -n cohort-discovery delete pvc cohort-discovery-mysql-data cohort-discovery-keycloak-data
-```
-
-Keep `generated/secrets.values.yaml` while the volume exists. MySQL sets its passwords only when it first initialises the volume, so new credentials won't match old data. The same goes for Keycloak, which keeps the client secret and passwords it imported. Delete the file and both volumes together, or none of them.
-
-## Run with Helm alone
-
-The chart is the whole definition; Tilt only builds images and forwards ports. Without Tilt, build the images under the tags `values.yaml` expects, so a local cluster that shares Docker's image store (Rancher Desktop with the Docker runtime, Docker Desktop, OrbStack) can use them:
-
-```bash
-export GITHUB_TOKEN=$(gh auth token)
-docker build --secret id=github_token,env=GITHUB_TOKEN -t ghcr.io/hdruk/cohort-discovery-api:b257363 services/api
-docker build -t ghcr.io/hdruk/cohort-discovery-nlp:v1.9.1 services/nlp
-scripts/build-web.sh ghcr.io/hdruk/cohort-discovery-web:v1.12.0 \
-  --build-arg APPLICATION_MODE=standalone \
-  --build-arg API_BASE_URL=http://localhost:8100 \
-  --build-arg NEXT_PUBLIC_TASK_URL=http://localhost:8100/api/v1 \
-  --build-arg NEXT_PUBLIC_USE_EXAMPLE_QUERY=false \
-  --build-arg NEXT_PUBLIC_USE_DEBUG_LOGS=false
-```
-
-The web is built through `scripts/build-web.sh` so that it carries the stack's branding (see [Branding](#branding)).
-
-For kind or k3d, load the images into the cluster afterwards (`kind load docker-image …`, `k3d image import …`).
-
-Then:
-
-```bash
-scripts/local-secrets.sh
-scripts/customisations-values.sh
-helm install cohort-discovery charts/cohort-discovery \
-  --namespace cohort-discovery --create-namespace \
-  -f generated/secrets.values.yaml -f generated/customisations.values.yaml --timeout 15m
-kubectl -n cohort-discovery port-forward svc/cohort-discovery-web 3000:3000
-kubectl -n cohort-discovery port-forward svc/cohort-discovery-api 8100:8100
-kubectl -n cohort-discovery port-forward svc/cohort-discovery-keycloak 8180:8180
-```
-
-If you forward the API or the web to other host ports, set `api.appUrl` and `web.appUrl` to match, and set `keycloak.port` to the Keycloak host port; Keycloak's forward must use the same port on both sides.
-
-`api-init` is a `post-install,post-upgrade` hook, so `helm install` waits for it. The API, queue and NLP pods wait in their `wait-for-api-init` init containers until it has finished.
-
-`helm uninstall` deletes the MySQL and Keycloak volumes with everything else.
-
-## Install somewhere other than your laptop
-
-The same chart runs on a shared cluster. Two example files show the ends of the range, each passed with `-f` on top of `values.yaml`:
-
-| File | What |
-|---|---|
-| `charts/cohort-discovery/values.evaluation.yaml` | Everything bundled (MySQL, Redis, Keycloak, synthetic collections), behind an ingress with TLS |
-| `charts/cohort-discovery/values.production-like.yaml` | External MySQL, Redis and identity provider, secrets from an existing Secret, no synthetic collections or provisioning |
-
-Copy one, replace the `example.org` hosts, and install:
-
-```bash
-helm install cohort-discovery charts/cohort-discovery \
-  --namespace cohort-discovery --create-namespace \
-  -f my-values.yaml -f generated/customisations.values.yaml --timeout 15m
-```
-
-### URLs and ingress
-
-`web.appUrl`, `api.appUrl` and, with the bundled Keycloak, `keycloak.url` are the URLs people's browsers use. `ingress.enabled` routes each URL's host to its Service, with `ingress.className`, `ingress.annotations` and the usual `ingress.tls` list. An ingress with a bare `localhost` URL fails the render, but `*.localhost` hosts work, which is how to try the ingress on a laptop: `http://cds.localhost` and so on reach the ingress controller on port 80 with no DNS set up.
-
-Serve the stack over HTTPS. The web sets its sign-in cookie with `Secure`, which browsers only accept over HTTPS or on `localhost` ([web#245](https://github.com/HDRUK/cohort-discovery-service-web/issues/245)). Behind an ingress, Keycloak trusts the `X-Forwarded-*` headers.
-
-The API, the web server and the provision Job call these URLs from inside the cluster too, so their hosts must resolve there. With `localhost` and `*.localhost` URLs the chart handles this with socat sidecars listening on the URL's port, as under Tilt, and maps `*.localhost` names to `127.0.0.1` in the pods. The PHP and curl clients always send `*.localhost` to loopback and ignore host entries, so nothing else would work for them. Other hosts need DNS that works in the cluster, or `hostAliases` pointing them at the ingress controller:
-
-```yaml
-hostAliases:
-  - ip: 10.43.0.10
-    hostnames: [cds.example.org, api.cds.example.org, auth.cds.example.org]
-```
-
-The web image is built for one API URL (`NEXT_PUBLIC_TASK_URL`, shown to custodians as the address for their BUNNY), so build it with `scripts/build-web.sh` and your `api.appUrl` until W4 makes that a run-time setting.
-
-### External MySQL and Redis
-
-With `mysql.enabled=false`, set `mysql.host` and `mysql.port`. The user `mysql.username`, with the `mysql-password` key, needs all privileges on both `mysql.appDatabase` and `mysql.omopDatabase`, which must exist. For the full vocabulary import, the server needs `local_infile=1`.
-
-With `redis.enabled=false`, set `redis.host` and `redis.port`. If it needs a password, set `redis.auth=true` and add the `redis-password` key.
-
-### Uploaded files
-
-The API saves the files BUNNYs upload (distribution results) to `storage/app/private`, and the queue pod reads them back. The two run as separate Deployments, so that folder is a shared volume, `<release>-api-storage`, set by `api.storageSize`, `api.storageClassName` and `api.storageAccessMode`. `ReadWriteOnce`, the default, only works while both pods run on the same node, which is always true on a one-node cluster. On a cluster with more nodes, set `api.storageAccessMode=ReadWriteMany` and a storage class that supports it, such as NFS, EFS or Filestore.
-
-### External identity provider
-
-With `keycloak.enabled=false`, set `sso.issuer` (the OIDC issuer URL), `sso.clientId` and the `sso-client-secret` key. Register `<api.appUrl>/api/auth/sso/default/callback` as the client's redirect URI and `<web.appUrl>/login` as its post-logout redirect. The claims mapping (`customisations/api/claimsaccesscontrol.php`) must match the provider's `groups` and `roles` claims. `bootstrap.adminEmail` must be a user there, with a verified email.
-
-The provision Job signs in through Keycloak's login form (D22). It works with an external Keycloak, using the `admin-password` key as the admin's Keycloak password. With any other provider, set `provision.enabled=false` and create collections in the app.
-
-### Secrets
-
-`scripts/local-secrets.sh` writes every secret into `generated/secrets.values.yaml`, and the chart turns them into a Secret. Elsewhere, create the Secret yourself and name it in `secrets.existingSecret`; the chart then renders no Secret. It needs these keys:
-
-| Key | When |
-|---|---|
-| `app-key` (`base64:` and 32 random bytes), `jwt-secret`, `collection-hosts-key-salt-1`, `collection-hosts-key-salt-2` | Always |
-| `passport-private-key`, `passport-public-key` | Always: an RSA key pair, PEM |
-| `admin-password`, `scheduler-client-id` (a UUID), `scheduler-client-secret` | Always |
-| `mysql-password` | Always |
-| `mysql-root-password` | Bundled MySQL |
-| `redis-password` | `redis.auth=true` |
-| `keycloak-admin-password`, `keycloak-client-secret`, and `keycloak-user-<passwordKey>` for each `keycloak.users` entry | Bundled Keycloak |
-| `sso-client-secret` | External identity provider |
-| `synthetic-db-password` | Synthetic collections |
-
-### Resources
-
-Every container has requests and a memory limit, set in values (`*.resources`, plus `waitResources` for the init containers, `init.resources`, `provision.resources` and `scheduler.resources`). There are no CPU limits: throttling slows the API's and NLP's start-up without protecting the node, and the requests already reserve CPU. The `vocab-import` Job allows 4Gi, because the importer raises PHP's memory limit for large tables.
-
-## What the init Job does
-
-`api-init` runs `charts/cohort-discovery/files/api-init/api-init.sh` in the API image. Each step is safe to repeat:
-
-| Step | Repeat behaviour |
-|---|---|
-| `migrate --force`, the `omop` migrations, `deploy:run` | Only pending migrations and steps run |
-| `WorkgroupSeeder` | Always runs; creates the workgroups in `customisations/api/workgroups.php` that are missing, and never deletes one |
-| `RolesAndPermissionsSeeder` | Runs only when `roles` is empty; it inserts unconditionally |
-| `StateSeeder`, `FeatureSeeder`, `PersonalAccessClientSeeder` | Always run; they create only what's missing |
-| `MinimalOmopSeeder` | Runs only when the `omop.concept` table is empty, so it never touches a full import |
-| `ensure-admin.php`: the custodian `bootstrap.custodianName` in "Demo Network", and the admin (`bootstrap.adminEmail`, role `admin`, member of that custodian, and workgroup `ADMIN` if it exists, which it doesn't by default) | Runs only when `users` is empty, so an install with users is never rewritten. It finds each record before creating it, so a run that failed part-way can be repeated |
-| Scheduler service account | Created from the Secret's `scheduler-client-id` and `scheduler-client-secret`; left alone when it matches, updated when it doesn't |
-
-The Passport keys come from the Secret through `PASSPORT_PRIVATE_KEY` and `PASSPORT_PUBLIC_KEY`, so tokens survive pod restarts. A2's `app:bootstrap` will replace the script.
-
-## Full OMOP vocabulary
-
-By default the API and NLP use the minimal vocabulary the init Job seeds, about 3,900 concepts. To search the full vocabulary, download it from [Athena](https://athena.ohdsi.org) and point the stack at it. The stack never ships vocabulary files: Athena needs an account, and some vocabularies, such as CPT4, are licensed.
-
-1. In Athena, choose the vocabularies and download the bundle.
-2. Unzip it straight into `customisations/athena/`, so that `customisations/athena/VOCABULARY.csv` exists. The folder must hold `VOCABULARY.csv` and `CONCEPT.csv`, plus whichever of `DOMAIN`, `CONCEPT_CLASS`, `RELATIONSHIP`, `CONCEPT_RELATIONSHIP`, `CONCEPT_SYNONYM`, `CONCEPT_ANCESTOR` and `DRUG_STRENGTH` you have. Missing tables are skipped. Everything in that folder except its README is git-ignored.
-3. Run `tilt up`. When `VOCABULARY.csv` is there, Tilt adds a `vocab-import` resource after `api-init` and runs it. Without it there's no import, and the minimal vocabulary stays.
-
-With Helm alone, pass `--set vocab.athena.hostPath=<absolute path>` and a longer `--timeout`, because `helm` waits for the import.
-
-The Job mounts the folder read-only. The path must exist on the Kubernetes node: Rancher Desktop mounts your macOS home folder into its VM at the same path, so anything under `/Users/<you>` works. kind needs an `extraMounts` entry for it.
-
-The Job compares the release version in `VOCABULARY.csv` (its `None` row) with the one already imported. If they match, it does nothing, so later upgrades are quick. Otherwise it replaces each table with the file's contents, `VOCABULARY` last, so a run that fails part-way is retried in full the next time. NLP picks up the new synonyms and ancestors within five minutes, with no restart. To import the same release again, for example with more vocabularies, delete its version row first:
-
-```bash
-kubectl -n cohort-discovery exec cohort-discovery-mysql-0 -- sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" omop -e "DELETE FROM vocabulary WHERE vocabulary_id = '"'"'None'"'"'"'
-```
-
-To go back to the minimal vocabulary, empty `omop.concept` and run the init Job again.
-
-## Collections: the provision Job
-
-`provision` creates the custodians, collection hosts and collections in `customisations/provision.json` through the API, shares each collection with its `workgroups` and makes it active, so a researcher in one of those workgroups sees it straight away. It runs after the API and Keycloak are up, as a Helm `post-install`/`post-upgrade` hook, and under Tilt again whenever the file changes. It signs in as `bootstrap.adminEmail` through Keycloak (D22), so it's off when Keycloak is.
-
-```json
-{
-  "custodians": [
-    {
-      "name": "Demo Custodian",
-      "hosts": [
-        {
-          "name": "Synthetic Host",
-          "collections": [
-            {
-              "name": "Synthetic Collection A",
-              "description": "Synthetic OMOP data for trying the service.",
-              "synthetic": true,
-              "workgroups": ["UK-RESEARCH", "UK-INDUSTRY"]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
-
-Records are matched by name, so running it again changes nothing. It never deletes or renames anything, and never removes a workgroup from a collection. A workgroup that doesn't exist (see `customisations/api/workgroups.php`) stops the run before anything is created.
-
-For each host it writes a Secret `bunny-<host>` with the BUNNY's `TASK_API_BASE_URL`, `TASK_API_USERNAME` and `TASK_API_PASSWORD`, and a `collection-<collection>` key holding each collection's ID. The API shows a host's credentials only once, when it's created, so the Secret is the only copy: if the host exists and its Secret doesn't, the Job stops and asks you to delete the host in the app or restore the Secret. To see what it did:
-
-```bash
-kubectl -n cohort-discovery logs job/cohort-discovery-provision
-```
-
-Each collection also gets two distribution schedules, the same ones the API's `CollectionSeeder` creates: `GENERIC` (concept counts) weekly and `DEMOGRAPHICS` monthly, at 23:59 London time. Without them the `distributions-collector` job creates no type-b tasks, and the term directory and the "Last Distribution" columns stay empty. When the Job adds a schedule it also runs it once straight away, so the distributions arrive within a minute or so. A collection that already has a schedule of that type is left alone, so a schedule changed in the app stays changed.
-
-When the Job creates a host or a collection, it restarts that host's BUNNY Deployments so they read the new IDs from the Secret.
-
-## Synthetic collections
-
-Each collection marked `"synthetic": true` in `provision.json` gets a BUNNY, `bunny-<collection>`, serving synthetic OMOP data, so queries return results without any real data. They describe no real people.
-
-- One Postgres, `synthetic-db`, holds a database per synthetic collection. Its volume is kept by `tilt down`.
-- On start, the BUNNY's init containers create the collection's database if it's missing and load omop-lite's bundled synthetic data into schema `omop`. omop-lite loads a schema only once, so restarts don't reload it.
-- `syntheticSize` on a collection picks the bundle: 100, 1000 or 1001 people. The default is `synthetic.defaultSize` (100). Any other value fails the render. Collections of the same size return the same counts.
-- Each Deployment runs two BUNNY containers: type `a` answers availability queries and type `b` collects distributions. Credentials and the collection ID come from the provision Job's `bunny-<host>` Secret, so they start once the Job has run.
-
-To reload a collection's data, drop its database and restart its BUNNY:
-
-```bash
-kubectl -n cohort-discovery exec cohort-discovery-synthetic-db-0 -- dropdb --username=postgres synthetic_collection_a
-kubectl -n cohort-discovery rollout restart deployment/cohort-discovery-bunny-synthetic-collection-a
-```
-
-## Scheduled jobs
-
-Four CronJobs call `POST /api/v1/services/caller/{command}` every minute with the scheduler service account, as production's Cloud Scheduler does: `distributions-collector`, `task-cleanup-job`, `collection-no-activity-monitor` and `collection-task-backlog-monitor`. Change the schedules under `scheduler.jobs`, or turn them off with `scheduler.enabled=false`. To run one now:
-
-```bash
-kubectl -n cohort-discovery create job --from=cronjob/cohort-discovery-task-cleanup-job task-cleanup-now
-kubectl -n cohort-discovery logs job/task-cleanup-now
-```
-
-## Configuration
-
-| Value | What |
-|---|---|
-| `images.*` | Image repositories and pinned tags |
-| `bootstrap.adminEmail`, `bootstrap.custodianName` | The seeded admin and custodian, used only when `users` is empty. The admin signs in through Keycloak, so it must also be in `keycloak.users` |
-| `api.appUrl`, `web.appUrl` | The API and web URLs as the browser sees them; SSO redirects are built from them |
-| `keycloak.enabled`, `keycloak.port`, `keycloak.url` | The bundled Keycloak on or off, its port (inside the cluster and on the host), and its browser URL (default `http://localhost:<port>`) |
-| `sso.issuer`, `sso.clientId` | An external OIDC provider, used when `keycloak.enabled=false` (see [External identity provider](#external-identity-provider)) |
-| `mysql.enabled`, `mysql.host`, `mysql.port`, `redis.enabled`, `redis.host`, `redis.port`, `redis.auth` | Bundled or external data stores (see [External MySQL and Redis](#external-mysql-and-redis)) |
-| `api.storageSize`, `api.storageClassName`, `api.storageAccessMode` | The volume the API and queue share for uploaded files (see [Uploaded files](#uploaded-files)) |
-| `ingress.*`, `hostAliases` | Ingress, and host entries for clusters that can't resolve the public hostnames (see [URLs and ingress](#urls-and-ingress)) |
-| `*.resources`, `waitResources` | Requests and memory limits (see [Resources](#resources)) |
-| `keycloak.groups`, `keycloak.roles`, `keycloak.users` | The realm's groups, realm roles and users; passwords are named by `passwordKey` and live in the secrets file |
-| `keycloak.realmJson`, `api.claimsAccessControlPhp`, `nlp.rulesJson`, `nlp.mappingsJson`, `provision.json` | Set only by `generated/customisations.values.yaml`, from `customisations/` (see [Customisations](#customisations)) |
-| `api.extraEnv`, `nlp.extraEnv`, `web.extraEnv` | Extra non-secret environment variables |
-| `provision.enabled` | The provision Job on or off; it's off when `provision.json` isn't supplied |
-| `vocab.athena.hostPath`, `vocab.resources` | The node folder holding an Athena download, which turns on the `vocab-import` Job, and its resources |
-| `synthetic.enabled`, `synthetic.defaultSize` | Synthetic BUNNYs on or off, and the default omop-lite bundle |
-| `synthetic.bunny.*` | BUNNY polling interval, low-number suppression and rounding |
-| `synthetic.storageSize`, `synthetic.storageClassName`, `synthetic.resources`, `synthetic.bunnyResources` | The synthetic Postgres's volume, and resources |
-| `scheduler.*` | Scheduled jobs |
-| `secrets.*` | Set only by `generated/secrets.values.yaml`; never in `values.yaml`. `secrets.existingSecret` names a Secret to use instead (see [Secrets](#secrets)) |
-
-## Customisations
-
-Everything a deployer is expected to change lives in `customisations/`, one folder per service:
-
-| Path | What | How it's used |
-|---|---|---|
-| `customisations/athena/` | An Athena vocabulary download, git-ignored (see [Full OMOP vocabulary](#full-omop-vocabulary)) | Mounted from the node by the `vocab-import` Job; Tilt only. Falls back to the minimal vocabulary |
-| `customisations/api/auth.php` | Authentication settings: password sign-in is off (see [Sign in](#sign-in)) | Mounted over the API's own |
-| `customisations/api/claimsaccesscontrol.php` | The claims mapping (see [Claims mapping](#claims-mapping)) | Mounted over the API's own |
-| `customisations/api/workgroups.php` | The workgroups the app has (see [Customising users, groups and roles](#customising-users-groups-and-roles)) | Mounted over the API's own; the init Job seeds it |
-| `customisations/keycloak/realm.json` | The Keycloak realm's client and settings | Imported by Keycloak, with the groups, roles and users from the values |
-| `customisations/keycloak/theme/` | The Keycloak sign-in page's look (see [Keycloak sign-in page](#keycloak-sign-in-page)) | Mounted into Keycloak as the `cohort-discovery` theme |
-| `customisations/nlp/rules.json`, `mappings.json` | The NLP rules and mappings | Mounted into the NLP |
-| `customisations/provision.json` | Custodians, hosts and collections, and the workgroups each collection is shared with (see [Collections](#collections-the-provision-job)) | Created through the API by the provision Job |
-| `customisations/web/branding/` | The web's branding (see [Branding](#branding)) | Built into the web image |
-
-Helm can only read files inside the chart, so `scripts/customisations-values.sh` copies the `api`, `keycloak` and `nlp` files and `provision.json` into `generated/customisations.values.yaml` (as `api.authPhp`, `api.claimsAccessControlPhp`, `api.workgroupsPhp`, `keycloak.realmJson`, `keycloak.themeFiles`, `nlp.rulesJson`, `nlp.mappingsJson` and `provision.json`), which is passed to Helm with `-f`. Tilt runs it on every start and when those folders change. The branding is used when the web image is built, not by the chart.
-
-You can delete files you don't want to change. Without an NLP file, nothing is mounted and the NLP uses its own copy, which is identical at the pinned tag. Without the claims mapping, the API uses its own copy, which syncs workgroups only on first sign-in and never removes them, so Keycloak is no longer the source of truth for access. Without `workgroups.php`, the API seeds its own nine workgroups. Without `auth.php`, password sign-in is back on. Without `provision.json`, no collections are created. Keycloak has no default, so the chart fails with a message if it's on and there's no realm. To keep your customisations somewhere else, pass that folder: `scripts/customisations-values.sh <folder>`.
-
-## Branding
-
-The web is branded at build time, so changing the branding means rebuilding the web image. The stack ships a neutral brand, "Feasibility Tool", in `customisations/web/branding/`:
-
-| File | What |
-|---|---|
-| `branding.config.ts` | Product name, sign-in page text, organisation name and link, legal page titles |
-| `theme.ts` | Colours and font, merged over the web's base theme. Set `primary` and `secondary`, or the web's own defaults show through |
-| `assets/logo.svg` | The header logo, shown on the `secondary` colour at 30px high, so it needs light artwork. Also the Keycloak sign-in page's logo |
-| `assets/icon.svg` | The favicon, a square version of the logo's mark. Used as the Keycloak sign-in page's favicon. The web doesn't use it yet (W3) |
-| `legal/termsAndConditions.mdx`, `legal/privacyPolicy.mdx` | Placeholders that say they must be replaced before anyone signs in |
-
-`scripts/build-web.sh <image> [docker build options]` copies `services/web` to a temporary folder, copies `customisations/web/branding/` over its `branding/`, and runs the web's own Dockerfile (D6). Any file you leave out of `customisations/web/branding/` falls back to the web's own. Tilt rebuilds the web when anything in it changes.
-
-Before a real deployment, replace the legal pages and set `organisationName`, `copyrightHolder` and `links.organisation` in `branding.config.ts`. Footer links such as the cookie notice are built from `links.organisation` unless `links.cookieNotice` and `links.accessibilityStatement` are set.
-
-Some HDR UK branding still comes from the web itself rather than `branding/`, for example the copyright text and the favicon. W3 tracks fixing that upstream. Until then, the web's tab shows its own favicon from `src/app/`, and `assets/icon.svg` is only used by Keycloak.
-
-### Keycloak sign-in page
-
-`customisations/keycloak/theme/` is a Keycloak login theme. It extends Keycloak's own `keycloak.v2` theme and restyles it to match the web: the ink background, the petrol buttons, an amber bar on the card, and the logo in place of the realm name. `realm.json` selects it with `"loginTheme": "cohort-discovery"`.
-
-| File | What |
-|---|---|
-| `login/theme.properties` | The parent theme, the stylesheets and the favicon |
-| `login/resources/css/customisations.css` | The colours and layout, mostly as PatternFly variables. Keep the colours in step with `customisations/web/branding/theme.ts` |
-
-The logo and favicon aren't copied into the theme: `scripts/customisations-values.sh` takes `customisations/web/branding/assets/logo.svg` and `icon.svg` and serves them as the theme's `img/logo.svg` and `img/icon.svg`, so the web and Keycloak share one copy. Other files you add under `theme/` are mounted at the same path in `/opt/keycloak/themes/cohort-discovery/`, for example a `login/messages/messages_en.properties` to change the page's wording.
-
-Theme changes reach a running Keycloak without a re-import: Tilt restarts it when the files change. Turning the theme on for a realm imported before it existed needs a re-import, because `loginTheme` is part of `realm.json` (see [Single sign-on](#single-sign-on-keycloak)). Without the `theme/` folder, Keycloak logs `Failed to find LOGIN theme cohort-discovery` and uses its own look.
-
-## Layout
-
-| Path | What |
-|---|---|
-| `services/` | web, API and NLP submodules |
-| `charts/cohort-discovery/` | the Helm chart: the one definition of the stack |
-| `charts/cohort-discovery/files/api-init/` | the init Job's scripts |
-| `customisations/` | everything a deployer changes: claims mapping, Keycloak realm, NLP rules and mappings, web branding (D21) |
-| `scripts/` | `local-secrets.sh`, `customisations-values.sh`, `build-web.sh` |
-| `generated/` | git-ignored: local secrets and the customisations values file |
-| `Tiltfile` | local development |
-
-`customisations/provision.json` arrives with S4.
+- [Customise](customising/index.md) the users, branding, collections, vocabulary and NLP rules.
+- Import the [full OMOP vocabulary](customising/vocabulary.md), so queries can use every concept.
+- Read the [Overview](overview.md) for how the parts fit together.

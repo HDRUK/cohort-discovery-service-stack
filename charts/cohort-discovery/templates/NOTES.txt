@@ -1,11 +1,35 @@
 Installed {{ .Chart.Name }} {{ .Chart.Version }} as {{ .Release.Name }} in {{ .Release.Namespace }}.
+{{- if .Values.ingress.enabled }}
 
-Forward the ports:
+Open {{ .Values.web.appUrl }}
+{{- else }}
+
+Forward the ports, each in its own terminal:
   kubectl -n {{ .Release.Namespace }} port-forward svc/{{ .Release.Name }}-web {{ .Values.web.port }}:{{ .Values.web.port }}
   kubectl -n {{ .Release.Namespace }} port-forward svc/{{ .Release.Name }}-api {{ .Values.api.port }}:{{ .Values.api.port }}
 {{- if .Values.keycloak.enabled }}
   kubectl -n {{ .Release.Namespace }} port-forward svc/{{ .Release.Name }}-keycloak {{ .Values.keycloak.port }}:{{ .Values.keycloak.port }}
 {{- end }}
 
-Sign in at http://localhost:{{ .Values.web.port }} as {{ .Values.bootstrap.adminEmail }}. The password is in the Secret:
+Then open {{ .Values.web.appUrl }}
+{{- end }}
+{{- if .Values.keycloak.enabled }}
+{{- $adminPasswordKey := "admin-password" }}
+{{- range .Values.keycloak.users }}
+{{- if eq (lower .email) (lower $.Values.bootstrap.adminEmail) }}
+{{- $adminPasswordKey = include "cohort-discovery.keycloakPasswordSecretKey" .passwordKey }}
+{{- end }}
+{{- end }}
+
+Sign in with "Single Sign-On" as {{ .Values.bootstrap.adminEmail }}. The password is in the Secret:
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "cohort-discovery.secretName" . }} -o jsonpath='{.data.{{ $adminPasswordKey }}}' | base64 -d; echo
+{{- else if .Values.sso.issuer }}
+
+Sign in with "Single Sign-On" through {{ .Values.sso.issuer }} as {{ .Values.bootstrap.adminEmail }}.
+{{- else }}
+
+Sign in with email and password as {{ .Values.bootstrap.adminEmail }}. The password is in the Secret:
   kubectl -n {{ .Release.Namespace }} get secret {{ include "cohort-discovery.secretName" . }} -o jsonpath='{.data.admin-password}' | base64 -d; echo
+{{- end }}
+
+Documentation: https://github.com/HDRUK/cohort-discovery-service-stack/tree/main/docs
