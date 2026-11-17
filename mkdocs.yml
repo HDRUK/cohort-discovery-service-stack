@@ -105,7 +105,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Overview: overview.md
-  - Try it on your laptop: getting-started.md
+  - Run locally: getting-started.md
   - Customise:
       - How to customise: customising/index.md
       - Identity and access: customising/identity-and-access.md
