@@ -10,3 +10,4 @@ pr-descriptions/
 __pycache__/
 customisations/athena/*
 !customisations/athena/README.md
+site/

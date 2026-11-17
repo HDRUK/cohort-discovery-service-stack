@@ -2,7 +2,7 @@
 
 > **AI disclosure:** Drafted with Claude Code on 2026-11-11 from a read of `project-daphne-web`, `project-daphne-api`, `project-daphne-nlp`, `somop`, `project-daphne-bunny-config`, `cohort-discovery-service-evaluator` and `cohort-discovery-service-docs`.
 
-**Status:** plan written. Decisions D1–D6, D9–D13, D15–D17 and D20–D22 are agreed; the rest are open. S0–S5 and S8 are done; S6 is in review.
+**Status:** plan written. Decisions D1–D6, D9–D13, D15–D17 and D20–D22 are agreed; the rest are open. S0–S5 and S8 are done; S6 and S9 are in review.
 
 ## Aims
 
@@ -65,6 +65,7 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [S6](tickets/S6-stack-non-local-installs.md) | stack | Non-local installs: ingress, external stores, example values | S1–S5 | in review |
 | [S7](tickets/S7-stack-ci-build-and-deploy.md) | stack | CI: build from any ref, push to GHCR, deploy | S1, D14 | todo |
 | [S8](tickets/S8-stack-branding-overlay.md) | stack | "Feasibility Tool" neutral branding in `config/branding/`, and the D6 build script used by Tilt | D6 | done |
+| [S9](tickets/S9-stack-user-docs.md) | stack | User docs: a short README, sectioned docs, an MkDocs site | S6 | in review |
 
 ## Suggested order
 

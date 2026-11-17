@@ -4,4 +4,4 @@ Put an unzipped [Athena](https://athena.ohdsi.org) download here to give the API
 
 Everything here except this README is git-ignored. Athena files need an account, and some vocabularies are licensed, so they must never be committed.
 
-With Helm alone, pass `--set vocab.athena.hostPath=<absolute path>`. See [Full OMOP vocabulary](../../docs/getting-started.md#full-omop-vocabulary).
+With Helm alone, pass `--set vocab.athena.hostPath=<absolute path>`. See [Vocabulary](../../docs/customising/vocabulary.md).

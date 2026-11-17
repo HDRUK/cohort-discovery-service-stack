@@ -209,6 +209,14 @@ Read from api `b257363` and nlp `v1.9.1`; the import itself is not yet run on a 
 - **Helm hook Jobs survive `helm uninstall`.** A leftover `api-init` Job has to be deleted by hand before installing the same release name again.
 - **Traefik on Rancher Desktop serves `*.localhost` ingress hosts on port 80 of the Mac**, so an ingress test needs no DNS or `/etc/hosts` changes, and browsers treat those hosts as secure contexts, so the `Secure` sign-in cookie works over http.
 
+## Learnt writing the user docs (S9, 2026-11-17)
+
+- **`tilt down` keeps three volumes, not two.** The synthetic Postgres PVC (`cohort-discovery-synthetic-db-data`) has `tilt.dev/down-policy: keep` like MySQL and Keycloak, so a reset has to delete it too, along with `generated/secrets.values.yaml`.
+- **The NLP applies only three mapping groups**: `normalise`, `demographic` and `bmi` (`parsing.py`, `rules_engine.py`). Entries in any other group are loaded but never used. An invalid or missing `rules.json` or `mappings.json` makes the NLP exit at start-up.
+- **The NLP's endpoint is `POST /extract` with `{"query": …}`**, not `/parse`.
+- **`provision.json` needs `description` only when a collection is created**: `provision.py` reads `collection_plan["description"]` without a default in its create branch.
+- **`helm install --dry-run=client` still checks ownership against the live cluster.** Rendering `NOTES.txt` under the release name `cohort-discovery` failed while a Tilt stack was running, because Tilt owns the resources. Use another release name and namespace for render checks.
+
 ## Prior art to reuse
 
 - `cohort-discovery-service-evaluator/compose.yaml`: mysql (with `init/mysql/01-omop.sql`), `api-init` (`init/api-init.sh`), nlp and api in standalone mode, with mounted Passport keys. It has no web and no Keycloak.

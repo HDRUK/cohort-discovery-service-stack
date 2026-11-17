@@ -21,7 +21,7 @@ HDR UK's own dev, preprod and prod deployments are separate and must keep workin
 
 ## Status
 
-Planning, S0 (scaffold), S1 (Helm core and Tilt), S2 (Keycloak), S3 (vocabulary), S4 (provisioner), S5 (synthetic BUNNYs) and S8 (branding) are done; S6 (non-local installs) is in review. The plan is in `docs/`:
+Planning, S0 (scaffold), S1 (Helm core and Tilt), S2 (Keycloak), S3 (vocabulary), S4 (provisioner), S5 (synthetic BUNNYs) and S8 (branding) are done; S6 (non-local installs) and S9 (user docs and MkDocs site) are in review. The user docs are the sectioned pages under `docs/` listed in `mkdocs.yml`; the planning files below are left out of the site. The plan is in `docs/`:
 
 | File | What |
 |---|---|
@@ -100,7 +100,8 @@ helm lint charts/cohort-discovery -f generated/secrets.values.yaml -f generated/
 python3 -m unittest discover -s tests/provision   # provisioner tests, standard library only
 export GITHUB_TOKEN=$(gh auth token)  # the API image build needs it until A1
 tilt up                               # the whole stack, local contexts only
-tilt down                             # keeps the MySQL volume
+tilt down                             # keeps the MySQL, Keycloak and synthetic volumes
+mkdocs build --strict -d /tmp/site    # the docs site; pip install -r requirements-docs.txt first
 ```
 
 `helm template` output contains the secrets, so don't print it. To inspect a render, pass a placeholder secrets file instead of `generated/secrets.values.yaml`.
