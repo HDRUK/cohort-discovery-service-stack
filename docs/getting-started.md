@@ -1,6 +1,6 @@
-# Getting started
+# Try it on your laptop
 
-This page runs the whole stack on your laptop with Tilt: the services, a throwaway Keycloak with three fictional users, the minimal OMOP vocabulary, and two synthetic collections that answer queries straight away. To run it without Tilt, see [Running with Helm](running/helm.md). To run it on a shared cluster, see [Installing beyond a laptop](installing/beyond-a-laptop.md).
+This page runs the whole stack on your laptop with Tilt: the services, a throwaway Keycloak with three fictional users, the minimal OMOP vocabulary, and two synthetic collections that answer queries straight away. To run it on a shared cluster, see [Deploy to a cluster](deploying/index.md).
 
 No local Kubernetes cluster? [Docker Compose](alternatives/docker-compose.md) describes a community alternative.
 
@@ -83,9 +83,9 @@ The BUNNYs' API credentials are in the Secret `bunny-<host>`, written by the pro
 2. Build a query, for example people with a condition, or type one in plain words and let the NLP turn it into a query.
 3. Run it. "Synthetic Collection A" and "Synthetic Collection B" each answer within a few seconds.
 
-Counts are rounded to the nearest 10, and counts below 10 are hidden, as a real collection would do. The synthetic data describes no real people. Collection A has 1,000 synthetic people and Collection B has 100.
+Counts are rounded to the nearest 10, and counts below 10 are reported as 0, as a real collection would do. The synthetic data describes no real people. Collection A has 1,000 synthetic people and Collection B has 100.
 
-If no collections appear, or queries never finish, see [Troubleshooting](operations/troubleshooting.md).
+If no collections appear, or queries never finish, see the [FAQ](faq.md).
 
 ## Host ports
 
@@ -96,9 +96,9 @@ export CDS_WEB_PORT=13000 CDS_API_PORT=18100 CDS_NLP_PORT=15001 CDS_KEYCLOAK_POR
 tilt up
 ```
 
-Use the same ports in the URLs above. Changing `CDS_API_PORT` rebuilds the web image, because the browser calls the API directly and the web is built with its URL.
+Use the same ports in the URLs above. Changing `CDS_API_PORT` also rebuilds the web image, because the task URL the web shows custodians is built in.
 
-Browsers share cookies across ports on the same host, so the stack's web app names its sign-in cookie `cds_stack_token` rather than the default `token`. A development web app on `localhost` and the stack can then both be signed in at once.
+Browsers share cookies across ports on the same host, so the stack's web app names its sign-in cookie `cds_stack_token` rather than the default `token`. A development web app on `localhost` and the stack can then both be signed in at once. To run the web's own dev server against the stack, see [Develop the web app](developing/web.md).
 
 ## Without Keycloak
 
@@ -128,5 +128,6 @@ To remove the stack completely, run the reset above without `tilt up`, then `kub
 ## Next
 
 - [Customise](customising/index.md) the users, branding, collections, vocabulary and NLP rules.
+- [Deploy to a cluster](deploying/index.md) when you're ready to run it for real.
 - Import the [full OMOP vocabulary](customising/vocabulary.md), so queries can use every concept.
 - Read the [Overview](overview.md) for how the parts fit together.

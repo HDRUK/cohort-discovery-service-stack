@@ -217,6 +217,14 @@ Read from api `b257363` and nlp `v1.9.1`; the import itself is not yet run on a 
 - **`provision.json` needs `description` only when a collection is created**: `provision.py` reads `collection_plan["description"]` without a default in its create branch.
 - **`helm install --dry-run=client` still checks ownership against the live cluster.** Rendering `NOTES.txt` under the release name `cohort-discovery` failed while a Tilt stack was running, because Tilt owns the resources. Use another release name and namespace for render checks.
 
+## Learnt reviewing the docs (S10, 2026-11-17)
+
+- **Only BUNNY type A polls keep a collection active.** `CollectionNoActivityMonitor` suspends an active collection whose last type A entry in `collection_activity_logs` is older than `COLLECTION_INACTIVITY_MINUTES` (30). `TaskController` (around line 251) records every poll through `CollectionPollRecorder`, and makes a suspended collection active again on its next type A poll once `CollectionBacklogLimiter::hasDrainedFor` says the backlog has drained.
+- **`API_BASE_URL` is read at run time; the chart sets it from `api.appUrl`** (`templates/web.yaml`). Only `NEXT_PUBLIC_TASK_URL`, which is only displayed, is fixed at build time. Earlier docs overstated this.
+- **In standalone mode the footer hides the organisation link** (`Footer.tsx`, `showOrganisationLink = !isStandalone`), so `organisationName` and `links.organisation` have no visible effect there.
+- **`values.evaluation.yaml` doesn't set `existingSecret`,** so installing with it needs `-f generated/secrets.values.yaml` or a Secret.
+- **The general service docs (`cohort-discovery-service-docs`) don't know the stack exists,** and describe a workgroup as taking one IdP value, though `ClaimResolver` accepts lists. Tracked as SD1.
+
 ## Prior art to reuse
 
 - `cohort-discovery-service-evaluator/compose.yaml`: mysql (with `init/mysql/01-omop.sql`), `api-init` (`init/api-init.sh`), nlp and api in standalone mode, with mounted Passport keys. It has no web and no Keycloak.

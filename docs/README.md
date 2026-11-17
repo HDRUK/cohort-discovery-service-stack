@@ -2,7 +2,7 @@
 
 > **AI disclosure:** Drafted with Claude Code on 2026-11-11 from a read of `project-daphne-web`, `project-daphne-api`, `project-daphne-nlp`, `somop`, `project-daphne-bunny-config`, `cohort-discovery-service-evaluator` and `cohort-discovery-service-docs`.
 
-**Status:** plan written. Decisions D1–D6, D9–D13, D15–D17 and D20–D22 are agreed; the rest are open. S0–S5 and S8 are done; S6 and S9 are in review.
+**Status:** plan written. Decisions D1–D6, D9–D13, D15–D17 and D20–D22 are agreed; the rest are open. S0–S5, S8 and S9 are done; S6 and S10 are in review.
 
 ## Aims
 
@@ -65,7 +65,10 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [S6](tickets/S6-stack-non-local-installs.md) | stack | Non-local installs: ingress, external stores, example values | S1–S5 | in review |
 | [S7](tickets/S7-stack-ci-build-and-deploy.md) | stack | CI: build from any ref, push to GHCR, deploy | S1, D14 | todo |
 | [S8](tickets/S8-stack-branding-overlay.md) | stack | "Feasibility Tool" neutral branding in `config/branding/`, and the D6 build script used by Tilt | D6 | done |
-| [S9](tickets/S9-stack-user-docs.md) | stack | User docs: a short README, sectioned docs, an MkDocs site | S6 | in review |
+| [S9](tickets/S9-stack-user-docs.md) | stack | User docs: a short README, sectioned docs, an MkDocs site | S6 | done |
+| [S10](tickets/S10-stack-docs-restructure.md) | stack | Restructure the user docs after review: one place to read, deploy order, connecting real BUNNYs, one diagram, links to the service docs | S9 | in review |
+| [S11](tickets/S11-stack-cluster-readiness.md) | stack | Chart gaps for real clusters: Keycloak `start-dev`, `imagePullSecrets`, vocabulary import from a volume, volumes on uninstall. Found in S10 | S6 | todo |
+| [SD1](tickets/SD1-service-docs-link-to-stack.md) | service docs | Link the general service docs to the stack, and fix their out-of-date pages. Found in S10 | S10 | todo |
 
 ## Suggested order
 

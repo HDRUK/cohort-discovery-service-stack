@@ -1,6 +1,6 @@
 # Identity and access
 
-Keycloak decides who can do what. On every sign-in, the API replaces the user's workgroups, roles and custodians with what Keycloak's ID token says. To change someone's access, change it in Keycloak and have them sign in again.
+Keycloak decides who can do what. The service docs explain [how sign-in works and what an identity provider must support](https://hdruk.github.io/cohort-discovery-service-docs/developers/deploying/identity-provider/), with a [Keycloak worked example](https://hdruk.github.io/cohort-discovery-service-docs/developers/deploying/examples/keycloak/); this page covers the stack's own Keycloak and files. On every sign-in, the API replaces the user's workgroups, roles and custodians with what Keycloak's ID token says. To change someone's access, change it in Keycloak and have them sign in again.
 
 Three things have to line up for a Keycloak group to mean anything in the app:
 
@@ -64,7 +64,7 @@ For example, to give everyone in a Keycloak group `example-uni` the `UK-RESEARCH
 
 ## Map Keycloak names to the app
 
-`customisations/api/claimsaccesscontrol.php` replaces the API's own `config/claimsaccesscontrol.php`. The stack's Keycloak names differ from the app's on purpose, to show the mapping.
+`customisations/api/claimsaccesscontrol.php` replaces the API's own `config/claimsaccesscontrol.php`. The stack's Keycloak names differ from the app's on purpose, to show the mapping. The service docs explain [claim mapping](https://hdruk.github.io/cohort-discovery-service-docs/developers/deploying/claim-mapping/) and the [access-control policy](https://hdruk.github.io/cohort-discovery-service-docs/developers/deploying/access-control-policy/) (trust, authoritative sync, floors) in full; this section covers how the stack sets them.
 
 | Setting | What |
 |---|---|
@@ -74,7 +74,9 @@ For example, to give everyone in a Keycloak group `example-uni` the `UK-RESEARCH
 
 A group also links the user to a custodian **with the same name** (ignoring case), if one exists. That's how `Demo Custodian` works. Signing in never creates a custodian; create it with `bootstrap.custodianName` or in `provision.json`.
 
-The API's own copy of this file reads its settings from `CLAIM_SYNC_*` environment variables. They have no effect while the stack's file is mounted. When the API is upgraded, compare the file with the new upstream one.
+The service docs suggest setting the policy with `CLAIM_SYNC_*` environment variables. The stack mounts the whole file instead, with every value written in, so the mappings and the policy live in one file you can review and diff. While it's mounted, the `CLAIM_SYNC_*` variables have no effect. When the API is upgraded, compare the file with the new upstream one.
+
+A workgroup can take a list of groups, as above, even though the service docs describe one group per workgroup: the API accepts either.
 
 To check what the API is using:
 
