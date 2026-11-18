@@ -2,7 +2,7 @@
 
 > **AI disclosure:** Drafted with Claude Code on 2026-11-11 from a read of `project-daphne-web`, `project-daphne-api`, `project-daphne-nlp`, `somop`, `project-daphne-bunny-config`, `cohort-discovery-service-evaluator` and `cohort-discovery-service-docs`.
 
-**Status:** plan written. Decisions D1–D6, D9–D13, D15–D17 and D20–D22 are agreed; the rest are open. S0–S5, S8 and S9 are done; S6 and S10 are in review.
+**Status:** plan written. Decisions D1–D6, D9–D13, D15–D17 and D20–D22 are agreed; the rest are open. S0–S6, S8–S10, S12 and S13 are done.
 
 ## Aims
 
@@ -62,14 +62,14 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [S3](tickets/S3-stack-omop-vocabulary.md) | stack | OMOP vocabulary: minimal default and optional Athena import Job | S1 | done |
 | [S4](tickets/S4-stack-provisioner.md) | stack | Provisioner: custodians, hosts and collections through the API, shared with workgroups and made active | S1, S2, D22 | done |
 | [S5](tickets/S5-stack-synthetic-bunnies.md) | stack | A synthetic database and BUNNY for each synthetic collection in `provision.json`, set up automatically | S4, D16 | done |
-| [S6](tickets/S6-stack-non-local-installs.md) | stack | Non-local installs: ingress, external stores, example values | S1–S5 | in review |
+| [S6](tickets/S6-stack-non-local-installs.md) | stack | Non-local installs: ingress, external stores, example values | S1–S5 | done |
 | [S7](tickets/S7-stack-ci-build-and-deploy.md) | stack | CI: build from any ref, push to GHCR, deploy | S1, D14 | todo |
 | [S8](tickets/S8-stack-branding-overlay.md) | stack | "Feasibility Tool" neutral branding in `config/branding/`, and the D6 build script used by Tilt | D6 | done |
 | [S9](tickets/S9-stack-user-docs.md) | stack | User docs: a short README, sectioned docs, an MkDocs site | S6 | done |
-| [S10](tickets/S10-stack-docs-restructure.md) | stack | Restructure the user docs after review: one place to read, deploy order, connecting real BUNNYs, one diagram, links to the service docs | S9 | in review |
+| [S10](tickets/S10-stack-docs-restructure.md) | stack | Restructure the user docs after review: one place to read, deploy order, connecting real BUNNYs, one diagram, links to the service docs | S9 | done |
 | [S11](tickets/S11-stack-cluster-readiness.md) | stack | Chart gaps for real clusters: Keycloak `start-dev`, `imagePullSecrets`, vocabulary import from a volume, volumes on uninstall. Found in S10 | S6 | todo |
-| [S12](tickets/S12-stack-tilt-settings.md) | stack | Tilt settings (host ports, Keycloak on or off) in a git-ignored `tilt_config.json` or flags, instead of exported env vars | S1 | in review |
-| [S13](tickets/S13-stack-deploy-docs-by-component.md) | stack | Split "Deploy to a cluster" into a page per part: how to build and override the API, web and NLP images, sign-in, the database and vocabulary, and the supporting services | S10 | in review |
+| [S12](tickets/S12-stack-tilt-settings.md) | stack | Tilt settings (host ports, Keycloak on or off) in a git-ignored `tilt_config.json` or flags, instead of exported env vars | S1 | done |
+| [S13](tickets/S13-stack-deploy-docs-by-component.md) | stack | Split "Deploy to a cluster" into a page per part: how to build and override the API, web and NLP images, sign-in, the database and vocabulary, and the supporting services | S10 | done |
 | [SD1](tickets/SD1-service-docs-link-to-stack.md) | service docs | Link the general service docs to the stack, and fix their out-of-date pages. Found in S10 | S10 | todo |
 
 ## Suggested order
