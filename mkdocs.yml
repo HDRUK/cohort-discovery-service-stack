@@ -113,6 +113,12 @@ nav:
       - NLP rules: customising/nlp.md
   - Deploy to a cluster:
       - Install with Helm: deploying/index.md
+      - The API: deploying/api.md
+      - The web app: deploying/web.md
+      - The NLP: deploying/nlp.md
+      - Database and vocabulary: deploying/database.md
+      - Sign-in: deploying/sign-in.md
+      - Supporting services: deploying/services.md
       - Connect a collection: deploying/connect-a-collection.md
   - FAQ: faq.md
   - Reference:

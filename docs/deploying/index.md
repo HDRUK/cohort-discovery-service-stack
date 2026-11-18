@@ -1,9 +1,21 @@
-# Deploy to a cluster
+# Install with Helm
 
-This page installs the stack on a shared Kubernetes cluster with Helm, in the order you'll need to do things. To run it on your own machine first, see [Run locally](../getting-started.md).
+This section installs the stack on a shared Kubernetes cluster with the Helm chart in `charts/cohort-discovery/`. This page is the walkthrough; the pages after it explain each part: how its image is built, how to use your own, and what to configure. To run the stack on your own machine first, see [Run locally](../getting-started.md).
 
 !!! warning "Before real people sign in"
     The service stores researchers' email addresses, identity-provider claims and activity logs. Read the [personal data inventory](../data-protection/personal-data-inventory.md) and the [known limitations](#known-limitations) below, and replace the placeholder legal pages (see [Branding](../customising/branding.md)). For how custodians' data is protected, see the service docs on [data governance](https://hdruk.github.io/cohort-discovery-service-docs/architecture/governance/).
+
+## What you deploy
+
+| Part | Image | Configured by | Page |
+|---|---|---|---|
+| API, queue worker, `api-init` Job | Built from `services/api` | `api.*`, `customisations/api/` | [The API](api.md) |
+| Web app | Built from `services/web` with your branding | Build arguments, `web.*`, `customisations/web/branding/` | [The web app](web.md) |
+| NLP query parser | Built from `services/nlp` | `nlp.*`, `customisations/nlp/` | [The NLP](nlp.md) |
+| MySQL: the app database and the OMOP vocabulary | `mysql`, or your own server | `mysql.*`, `vocab.*` | [Database and vocabulary](database.md) |
+| Sign-in: the bundled Keycloak, your own OIDC provider, or passwords | `keycloak`, or none | `keycloak.*`, `sso.*`, `customisations/api/auth.php` | [Sign-in](sign-in.md) |
+| Redis, the scheduled jobs, the setup Jobs, ingress | Third-party images | `redis.*`, `scheduler.*`, `provision.*`, `ingress.*` | [Supporting services](services.md) |
+| Collections' BUNNYs | Run by each custodian | The app, or `customisations/provision.json` | [Connect a collection](connect-a-collection.md) |
 
 ## 1. Choose a starting point
 
@@ -14,44 +26,11 @@ Two example values files in `charts/cohort-discovery/` show the ends of the rang
 | `values.evaluation.yaml` | Everything bundled (MySQL, Redis, Keycloak, synthetic collections), behind an ingress with TLS | A shared trial with fictional users. Not for real users: the bundled Keycloak runs in development mode |
 | `values.production-like.yaml` | External MySQL, Redis and identity provider, secrets from a Secret you create, no synthetic collections or provisioning | A real service |
 
-Copy one to `my-values.yaml` and choose your hostnames now, because the steps below use them. The examples use three: `cds.example.org` (web), `api.cds.example.org` (API) and `auth.cds.example.org` (Keycloak).
+Copy one to `my-values.yaml` and choose your hostnames now, because the other pages use them. The examples use three: `cds.example.org` (web), `api.cds.example.org` (API) and `auth.cds.example.org` (Keycloak). Set them as described in [URLs and ingress](services.md#urls-and-ingress).
 
 ## 2. Build and push the images
 
-Images aren't published yet, so build them from `services/` and push them to a registry your cluster can pull from.
-
-!!! note
-    The API build needs a GitHub token that can read HDR UK's private `hdruk/*` composer packages, for now.
-
-```bash
-REGISTRY=registry.example.org/cohort-discovery
-API_URL=https://api.cds.example.org
-export GITHUB_TOKEN=$(gh auth token)
-
-docker build --secret id=github_token,env=GITHUB_TOKEN -t $REGISTRY/api:1 services/api
-docker build -t $REGISTRY/nlp:1 services/nlp
-scripts/build-web.sh $REGISTRY/web:1 \
-  --build-arg APPLICATION_MODE=standalone \
-  --build-arg API_BASE_URL=$API_URL \
-  --build-arg NEXT_PUBLIC_TASK_URL=$API_URL/api/v1 \
-  --build-arg NEXT_PUBLIC_USE_EXAMPLE_QUERY=false \
-  --build-arg NEXT_PUBLIC_USE_DEBUG_LOGS=false
-docker push $REGISTRY/api:1 && docker push $REGISTRY/nlp:1 && docker push $REGISTRY/web:1
-```
-
-Build for your cluster's CPU architecture (add `--platform linux/amd64` on an Apple Silicon Mac). `scripts/build-web.sh` builds the web with your branding from `customisations/web/branding/`.
-
-The web's build arguments are fixed into the image:
-
-| Build argument | What |
-|---|---|
-| `APPLICATION_MODE` | Always `standalone` for this stack |
-| `NEXT_PUBLIC_TASK_URL` | Your API's URL plus `/api/v1`. The web shows it to custodians as the URL for their BUNNY, and builds the footer's "API docs" link from it. No request uses it |
-| `API_BASE_URL` | Has no effect in the browser: the chart sets it at run time, from `api.appUrl` with sign-in on, otherwise the API's in-cluster address |
-| `NEXT_PUBLIC_USE_EXAMPLE_QUERY` | `true` starts the query builder with an example query |
-| `NEXT_PUBLIC_USE_DEBUG_LOGS` | `true` turns on the web's debug logging in the browser |
-
-Then point the chart at your images in `my-values.yaml`:
+Images aren't published yet. Build the API, web and NLP images as their pages describe, push them to a registry your cluster can pull from, and set `images.api`, `images.web` and `images.nlp` in `my-values.yaml`:
 
 ```yaml
 images:
@@ -60,9 +39,11 @@ images:
   web: { repository: registry.example.org/cohort-discovery/web, tag: "1" }
 ```
 
-If the registry needs credentials, see [known limitations](#known-limitations).
+## 3. Decide each part's settings
 
-## 3. Create the secrets
+Work through the pages for the parts you're changing: [sign-in](sign-in.md) and the [database](database.md) above all, because they decide which secrets you need.
+
+## 4. Create the secrets
 
 === "Evaluation: a generated values file"
 
@@ -100,60 +81,20 @@ If the registry needs credentials, see [known limitations](#known-limitations).
 
     Or create it with your own secrets tooling, with the same keys. Never change `app-key`, the Passport keys or the salts afterwards: sign-ins and BUNNY credentials depend on them.
 
-    | Key | Needed when |
-    |---|---|
-    | `app-key`, `jwt-secret`, `collection-hosts-key-salt-1`, `collection-hosts-key-salt-2`, `passport-private-key`, `passport-public-key`, `admin-password`, `scheduler-client-id`, `scheduler-client-secret`, `mysql-password` | Always |
-    | `mysql-root-password` | Bundled MySQL |
-    | `redis-password` | `redis.auth: true` |
-    | `keycloak-admin-password`, `keycloak-client-secret`, and `keycloak-user-<passwordKey in kebab case>` for each `keycloak.users` entry | Bundled Keycloak |
-    | `sso-client-secret` | External identity provider |
-    | `synthetic-db-password` | Synthetic collections |
+    The chart doesn't check your Secret's keys. If one is missing, pods wait in `CreateContainerConfigError` and `helm install` times out waiting for `api-init`; `kubectl -n cohort-discovery describe pod` names the key.
 
-## 4. Write the values file
-
-### URLs and ingress
-
-`web.appUrl`, `api.appUrl` and, with the bundled Keycloak, `keycloak.url` are the URLs people's browsers use. Single sign-on redirects are built from them. `ingress.enabled: true` routes each URL's host to its Service, with `ingress.className`, `ingress.annotations` and the usual `ingress.tls` list.
-
-**Serve the stack over HTTPS.** The web sets its sign-in cookie with `Secure`, which browsers only accept over HTTPS or on `localhost`.
-
-The API, the web server and the provision Job also call these URLs from inside the cluster, so the hosts must resolve there. Use DNS that works inside the cluster, or `hostAliases` pointing them at the ingress controller:
-
-```yaml
-hostAliases:
-  - ip: 10.43.0.10
-    hostnames: [cds.example.org, api.cds.example.org, auth.cds.example.org]
-```
-
-To try the ingress on a laptop, use `*.localhost` hosts (`http://cds.localhost` and so on): they reach a local ingress controller on port 80 with no DNS, and the chart handles them inside the cluster. A bare `localhost` URL with the ingress on fails the install.
-
-### External MySQL and Redis
-
-With `mysql.enabled: false`, set `mysql.host` and `mysql.port`. The user `mysql.username` needs all privileges on both `mysql.appDatabase` and `mysql.omopDatabase`, which must already exist. For the full vocabulary import, the server needs `local_infile=1`.
-
-With `redis.enabled: false`, set `redis.host` and `redis.port`, and `redis.auth: true` if it needs a password.
-
-### Identity provider
-
-The bundled Keycloak is for trials. For real users, use your organisation's identity provider: set `keycloak.enabled: false`, `sso.issuer` (the OIDC issuer URL) and `sso.clientId`, then in the provider:
-
-- register `<api.appUrl>/api/auth/sso/default/callback` as the redirect URI, and `<web.appUrl>/login` as the post-logout redirect;
-- send `groups` and `roles` claims in the ID token, and match them in [the claims mapping](../customising/identity-and-access.md#map-keycloak-names-to-the-app);
-- create `bootstrap.adminEmail` as a user, with a verified email.
-
-The service docs explain the [sign-in flow and what the provider must support](https://hdruk.github.io/cohort-discovery-service-docs/developers/deploying/identity-provider/); only some providers work today.
-
-The provision Job signs in through Keycloak's login form, so with any other provider set `provision.enabled: false` and [create collections in the app](connect-a-collection.md).
-
-### Storage
-
-The API saves files BUNNYs upload, and the queue worker reads them back, through a shared volume (`api.storageSize`, `api.storageClassName`, `api.storageAccessMode`). The default, `ReadWriteOnce`, only works while both pods are on the same node. On a cluster with more nodes, set `api.storageAccessMode: ReadWriteMany` and a storage class that supports it, such as NFS, EFS or Filestore.
-
-The bundled MySQL, Keycloak and synthetic Postgres have their own volumes (`*.storageSize`, `*.storageClassName`). A full OMOP vocabulary needs more than the default 10Gi for MySQL.
-
-### Resources
-
-Every container has CPU and memory requests and a memory limit (`*.resources`), and no CPU limit. See [Chart values](../reference/values.md).
+| Key | Needed when | Used by |
+|---|---|---|
+| `app-key`, `jwt-secret`, `passport-private-key`, `passport-public-key` | Always | The API. The Passport keys sign sign-in tokens |
+| `collection-hosts-key-salt-1`, `collection-hosts-key-salt-2` | Always | The API: BUNNY credentials |
+| `admin-password` | Always | The first admin's password sign-in |
+| `scheduler-client-id`, `scheduler-client-secret` | Always | The [scheduled jobs](services.md#scheduled-jobs) |
+| `mysql-password` | Always | MySQL, the API, queue worker, `api-init`, `vocab-import` and NLP |
+| `mysql-root-password` | Bundled MySQL | MySQL |
+| `redis-password` | `redis.auth: true` | The API and queue worker |
+| `keycloak-admin-password`, `keycloak-client-secret`, and `keycloak-user-<passwordKey in kebab case>` for each `keycloak.users` entry | Bundled Keycloak | Keycloak and the API |
+| `sso-client-secret` | Your own identity provider | The API |
+| `synthetic-db-password` | Synthetic collections | The synthetic Postgres and BUNNYs |
 
 ## 5. Install
 
@@ -168,7 +109,7 @@ helm install cohort-discovery charts/cohort-discovery \
 
 Leave out `-f generated/secrets.values.yaml` if you created your own Secret. `scripts/customisations-values.sh` turns the files in `customisations/` into chart values; see [Customise](../customising/index.md).
 
-`helm install` waits for the setup Jobs: `api-init`, then `provision` and, if you set `vocab.athena.hostPath`, `vocab-import`. The other pods wait for what they need. Then:
+`helm install` waits for the [setup Jobs](services.md#setup-jobs). Then:
 
 ```bash
 kubectl -n cohort-discovery get pods
@@ -188,18 +129,11 @@ Register each custodian's collection host and run its BUNNYs: see [Connect a col
 3. Compare `customisations/api/` and `customisations/nlp/` with the services' own copies at the new release. They replace the services' files, so new settings upstream won't appear until you add them.
 4. Run `scripts/customisations-values.sh`, then the install command with `helm upgrade` in place of `helm install`.
 
-The setup Jobs run again and are safe to repeat: `api-init` runs only pending migrations, `provision` only adds what's missing, and `vocab-import` does nothing unless the vocabulary release changed. Pods whose configuration changed restart by themselves.
+The setup Jobs run again and are safe to repeat. Pods restart by themselves when their configuration changes, but not when the Secret does: after changing a secret, run `kubectl -n cohort-discovery rollout restart deployment`.
 
 ## Back up
 
-Everything worth keeping is in MySQL: the app database (`cohort_discovery`) and the vocabulary (`omop`), which you can import again instead. With an external MySQL, use your usual backups. With the bundled one:
-
-```bash
-kubectl -n cohort-discovery exec cohort-discovery-mysql-0 -- sh -c \
-  'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction cohort_discovery' > cohort_discovery.sql
-```
-
-Keep the Secret too. The dump holds personal data (researchers' emails and activity), so store and delete it accordingly.
+Back up MySQL, the bundled Keycloak's volume if you use it, the `bunny-<host>` Secrets and your own Secret; see [Back up](database.md#back-up).
 
 ## Uninstall
 
@@ -229,10 +163,11 @@ Keycloak's forward must use the same port on both sides (`keycloak.port`), becau
 
 | Limitation | What to do |
 |---|---|
-| Images aren't published, and the API build needs access to HDR UK's private composer packages | Build them yourself (step 2) |
+| Images aren't published, and the API build needs access to HDR UK's private composer packages | Build them yourself ([The API](api.md#build-the-image)) |
+| The API image keeps the GitHub token used to build it, and the API and NLP images take in any local `.env` file | Use a read-only token, build from clean checkouts, and push only to a private registry |
 | The chart has no `imagePullSecrets`, so it can't pull from a registry that needs credentials | Use a registry your nodes can pull from without them, or give the nodes' service account access |
 | The bundled Keycloak runs in development mode | Use it for trials only; use your own identity provider for real users |
-| The full vocabulary import reads from a folder on the node (`hostPath`), which many managed clusters don't allow | Import on a cluster that allows it, or load the vocabulary into MySQL yourself |
+| The full vocabulary import reads from a folder on the node (`hostPath`), which many managed clusters don't allow | Import on a cluster that allows it, or [load the vocabulary yourself](database.md#without-hostpath) |
 | Every part runs as one replica | Expect short outages during upgrades |
 | `helm uninstall` deletes the data volumes | Back up first; keep data in an external MySQL |
 

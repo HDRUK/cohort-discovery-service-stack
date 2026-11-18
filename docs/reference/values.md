@@ -2,14 +2,14 @@
 
 Every setting in `charts/cohort-discovery/values.yaml`. Override them in a values file of your own, passed with `-f`. Values marked *generated* are set from `customisations/` by `scripts/customisations-values.sh`; don't set them by hand.
 
-No secret has a value here. Secrets go in `generated/secrets.values.yaml` under `secrets:`, or in a Secret you create; see [Secrets](../deploying/index.md#3-create-the-secrets).
+No secret has a value here. Secrets go in `generated/secrets.values.yaml` under `secrets:`, or in a Secret you create; see [Secrets](../deploying/index.md#4-create-the-secrets).
 
 ## General
 
 | Value | Default | What |
 |---|---|---|
 | `imagePullPolicy` | `IfNotPresent` | For every container |
-| `hostAliases` | `[]` | Host entries added to pods, for clusters that can't resolve the public hostnames. See [URLs and ingress](../deploying/index.md#urls-and-ingress) |
+| `hostAliases` | `[]` | Host entries added to pods, for clusters that can't resolve the public hostnames. See [URLs and ingress](../deploying/services.md#urls-and-ingress) |
 | `waitResources` | small | Resources for the init containers that wait for other parts |
 | `images.<name>.repository`, `.tag` | pinned | The image for each part: `api`, `nlp`, `web`, `mysql`, `redis`, `curl`, `keycloak`, `socat`, `python`, `postgres`, `omopLite`, `bunny`. Every tag is pinned |
 
@@ -31,7 +31,7 @@ No secret has a value here. Secrets go in `generated/secrets.values.yaml` under 
 | `api.standaloneJwtTtlMinutes` | `120` | How long a sign-in lasts, in minutes |
 | `api.authPhp`, `api.claimsAccessControlPhp`, `api.workgroupsPhp` | *generated* | From `customisations/api/` |
 | `api.extraEnv` | `{}` | Extra non-secret environment variables for the API, queue, `api-init` and `vocab-import` containers |
-| `api.storageSize`, `api.storageClassName`, `api.storageAccessMode` | `5Gi`, cluster default, `ReadWriteOnce` | The volume the API and queue share for uploaded files. See [Storage](../deploying/index.md#storage) |
+| `api.storageSize`, `api.storageClassName`, `api.storageAccessMode` | `5Gi`, cluster default, `ReadWriteOnce` | The volume the API and queue share for uploaded files. See [File storage](../deploying/api.md#file-storage) |
 | `api.resources`, `queue.resources` | | Requests and memory limits |
 
 ## NLP
@@ -66,7 +66,7 @@ The web's server reads `API_BASE_URL` at run time: the chart sets it from `api.a
 | `keycloak.roles`, `keycloak.groups`, `keycloak.users`, `keycloak.defaultGroup` | three fictional users | The realm's roles, groups and users. See [Identity and access](../customising/identity-and-access.md#add-a-user) |
 | `keycloak.storageSize`, `keycloak.storageClassName` | `1Gi`, cluster default | Its volume |
 | `keycloak.resources` | | Requests and memory limit |
-| `sso.issuer`, `sso.clientId` | empty | Another OIDC provider, used when `keycloak.enabled` is `false`. See [Identity provider](../deploying/index.md#identity-provider) |
+| `sso.issuer`, `sso.clientId` | empty | Another OIDC provider, used when `keycloak.enabled` is `false`. See [Sign-in](../deploying/sign-in.md#your-own-oidc-provider) |
 
 ## Data stores
 
@@ -125,4 +125,4 @@ The web's server reads `API_BASE_URL` at run time: the chart sets it from `api.a
 | Value | What |
 |---|---|
 | `secrets.*` | Set only by `generated/secrets.values.yaml` |
-| `secrets.existingSecret` | The name of a Secret you created, used instead. See [Secrets](../deploying/index.md#3-create-the-secrets) |
+| `secrets.existingSecret` | The name of a Secret you created, used instead. See [Secrets](../deploying/index.md#4-create-the-secrets) |
