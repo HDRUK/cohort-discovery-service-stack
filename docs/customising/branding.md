@@ -4,7 +4,7 @@ The stack ships a neutral brand, "Feasibility Tool", rather than HDR UK's. To us
 
 ## The web app
 
-The web is branded when its image is built, so a change means a rebuild. Tilt rebuilds it when anything in the folder changes; on a cluster, rebuild and push it (see [Deploy to a cluster](../deploying/index.md#2-build-and-push-the-images)).
+The web is branded when its image is built, so a change means a rebuild. Tilt rebuilds it when anything in the folder changes; on a cluster, rebuild and push it (see [The web app](../deploying/web.md#build-the-image)).
 
 | File | What |
 |---|---|

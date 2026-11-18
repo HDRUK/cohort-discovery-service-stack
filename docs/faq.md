@@ -46,7 +46,7 @@ The chart checks its values and stops with a message naming the problem:
 
 | Message mentions | Fix |
 |---|---|
-| `secrets.… is not set` | Pass `-f generated/secrets.values.yaml`, or create a Secret and set `secrets.existingSecret`. See [Deploy to a cluster](deploying/index.md#3-create-the-secrets) |
+| `secrets.… is not set` | Pass `-f generated/secrets.values.yaml`, or create a Secret and set `secrets.existingSecret`. See [Deploy to a cluster](deploying/index.md#4-create-the-secrets) |
 | `the passwordKey of a keycloak.users entry, is not set` | Add that key under `secrets:`. See [Add a user](customising/identity-and-access.md#add-a-user) |
 | `is in group …, which is not in keycloak.groups`, or `has realm role …` | Add the group or role to `keycloak.groups` or `keycloak.roles` |
 | `ingress.enabled needs a hostname other than localhost` | Set `web.appUrl`, `api.appUrl` and `keycloak.url` to real hosts, or `*.localhost` names on a laptop |
