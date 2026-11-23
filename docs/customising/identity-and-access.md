@@ -2,14 +2,29 @@
 
 Keycloak decides who can do what. The service docs explain [how sign-in works and what an identity provider must support](https://hdruk.github.io/cohort-discovery-service-docs/developers/deploying/identity-provider/), with a [Keycloak worked example](https://hdruk.github.io/cohort-discovery-service-docs/developers/deploying/examples/keycloak/); this page covers the stack's own Keycloak and files. On every sign-in, the API replaces the user's workgroups, roles and custodians with what Keycloak's ID token says. To change someone's access, change it in Keycloak and have them sign in again.
 
-Three things have to line up for a Keycloak group to mean anything in the app:
+On sign-in, the API reads two claims from the ID token and maps them to the app through `customisations/api/claimsaccesscontrol.php`. For example, for a user in the `breathe` and `Demo Custodian` groups with the `researcher` role:
 
 ```mermaid
 flowchart LR
-  kc["Keycloak group<br/><code>breathe</code><br/>(keycloak.groups)"] -- mapped by --> map["claimsaccesscontrol.php<br/><code>'uk-research' => [..., 'breathe']</code>"]
-  map -- to a workgroup listed in --> wg["workgroups.php<br/><code>uk-research</code>"]
-  wg --> app["The user is in<br/>UK-RESEARCH"]
+  subgraph token["Keycloak ID token"]
+    groups["groups claim<br/>breathe, Demo Custodian"]
+    roles["roles claim<br/>researcher"]
+  end
+  subgraph map["claimsaccesscontrol.php"]
+    wm["workgroup_mappings<br/>uk-research ⇐ ukri, ncs, breathe"]
+    rm["role_mappings<br/>user ⇐ researcher"]
+  end
+  subgraph app["The user in the app"]
+    wg["Workgroup UK-RESEARCH<br/><i>must be in workgroups.php</i>"]
+    role["Role user"]
+    cust["Custodian Demo Custodian<br/><i>must already exist</i>"]
+  end
+  groups --> wm --> wg
+  roles --> rm --> role
+  groups -- same name --> cust
 ```
+
+A group with no mapping, such as `default`, gives nothing. The sections below cover each step.
 
 ## The default users
 
