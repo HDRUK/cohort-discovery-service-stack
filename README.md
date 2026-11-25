@@ -80,7 +80,7 @@ For the service itself (BUNNY, identity providers, OMOP requirements), see the g
 
 ## Status
 
-Usable for local evaluation and development, and installable on a shared cluster, with the [known limitations](https://hdruk.github.io/cohort-discovery-service-stack/deploying/#known-limitations). Published images and CI are still to come. See the [tracker](docs/README.md).
+Usable for local evaluation and development, and installable on a shared cluster, with the [known limitations](https://hdruk.github.io/cohort-discovery-service-stack/deploying/#known-limitations). Published images are still to come. See the [tracker](docs/README.md).
 
 ## Personal data
 

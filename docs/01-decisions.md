@@ -17,9 +17,9 @@ Moving variables between build time and run time changes HDR UK's own pipelines 
 The default stack runs `APP_OPERATION_MODE=standalone` / `APPLICATION_MODE=standalone`. Roles, custodians and workgroups come from IdP claims (synced `always`, authoritative, set in `customisations/api/claimsaccesscontrol.php`), and seeding adds to that.
 
 ### D5. web, api and nlp are git submodules of this repo
-Each is pinned to a release tag. CI can override the pin with any ref (S7).
+Each is pinned to a release tag.
 
-**Exception, 2026-11-13:** `services/api` is pinned to commit `b257363` on the unmerged branch `feat/DP-1254-many-to-one-claim-mapping` (A8), so the stack can use list-valued claim mappings and `config/workgroups.php`. `images.api.tag` is `b257363` to match. When DP-1254 is in a release, re-pin to that tag and set the image tag back.
+**Exception, 2026-11-25:** all three are pinned to `dev` commits so the stack has DP-1254 (A8), DP-1261 (A4) and DP-1262 (W1) before they are released: api `1911d5e`, web `cd5687e1`, nlp `cdc8887`. The default tags in `images` (api `b257363`, web `v1.12.0`, nlp `v1.9.1`) don't match these pins. Tilt builds from the submodules, so it isn't affected; a cluster install sets its own tags (see the deploy docs). When these are in a release, re-pin to the release tags and set the image tags to match.
 
 ### D11. Repo name: `cohort-discovery-service-stack`
 Agreed 2026-11-11. The repo is `HDRUK/cohort-discovery-service-stack` (private for now).
@@ -88,19 +88,14 @@ Agreed 2026-11-18, in API ticket DP-1261 (A4). The API **tells** the web, per de
 - **Advisory, not 403.** Removing access must never be blocked: it's the incident lever, and lasts until the user's next sign-in. The per-user answer is a prediction (an IdP can leave a claim out, and nothing syncs). Roles and custodians have no edit endpoints to guard. Enforcement can be added later without changing the contract.
 - Rejected: a single deployment-level 403 guard, the earlier recommendation here, because it is wrong for mixed deployments (password plus SSO, or several providers).
 
+### D14. No CI deploy of the stack
+Agreed 2026-11-25. The stack is a guide for deployers to build and run their own, not a service HDR UK deploys from CI, so S7 is dropped. Building images and deploying them is the deployer's job, as the deploy docs describe. Rejected: a self-hosted runner with kind or k3s, an existing namespace through Helm, and a VM running Compose.
+
 ## Open
 
 ### D7. What the published web image is
 **Recommendation:** one generic standalone image with neutral branding (W3), built with `NEXT_PUBLIC_*` values for `http://localhost:3000`. Changing URLs or branding means rebuilding through the stack's build script.
 **After W2 (2026-11-12):** the recommendation stands. Of the web's variables, only `NEXT_PUBLIC_TASK_URL` is wrong in a generic image served away from `localhost`, and only in what custodians are shown (the URL to give their BUNNY, and the footer's "API docs" link); no request uses it. Everything else is either read at run time already or doesn't apply to standalone. `NEXT_PUBLIC_LOGIN_URL` must stay unset. No HDR UK pipeline changes (D3). W4 makes the task URL a run-time setting without touching HDR UK's pipelines, if a no-rebuild image matters more later. See [web-variables.md](web-variables.md).
-
-### D14. Where CI deploys a custom-built stack
-Options:
-- a self-hosted runner with kind or k3s;
-- an existing Kubernetes namespace through Helm;
-- a VM running Compose.
-
-**Recommendation:** an existing namespace through Helm, because it matches how `dev-standalone` is deployed today. That means S7 can't deploy until S6 is done. Until then it builds and pushes only.
 
 ### D18. Which Redis the stack runs
 Found during S1. Redis 7.4 and later aren't under an OSI licence: 7.4 is RSALv2/SSPL, and 8.x adds AGPL. 7.2 is the last BSD-licensed line. The API only needs a Redis-protocol server for its queue, cache and sessions.
