@@ -24,7 +24,7 @@ Two example values files in `charts/cohort-discovery/` show the ends of the rang
 | File | What | Good for |
 |---|---|---|
 | `values.evaluation.yaml` | Everything bundled (MySQL, Redis, Keycloak, synthetic collections), behind an ingress with TLS | A shared trial with fictional users. Not for real users: the bundled Keycloak runs in development mode |
-| `values.production-like.yaml` | External MySQL, Redis and identity provider, secrets from a Secret you create, no synthetic collections or provisioning | A real service |
+| `values.production-like.yaml` | External MySQL, Redis and identity provider, secrets and a registry pull secret you create, the full vocabulary from a volume, no synthetic collections or provisioning | A real service |
 
 Copy one to `my-values.yaml` and choose your hostnames now, because the other pages use them. The examples use three: `cds.example.org` (web), `api.cds.example.org` (API) and `auth.cds.example.org` (Keycloak). Set them as described in [URLs and ingress](services.md#urls-and-ingress).
 
@@ -38,6 +38,8 @@ images:
   nlp: { repository: registry.example.org/cohort-discovery/nlp, tag: "1" }
   web: { repository: registry.example.org/cohort-discovery/web, tag: "1" }
 ```
+
+If the registry needs credentials, name a pull secret in `imagePullSecrets`; see [Third-party images](services.md#third-party-images).
 
 ## 3. Decide each part's settings
 
@@ -137,15 +139,21 @@ Back up MySQL, the bundled Keycloak's volume if you use it, the `bunny-<host>` S
 
 ## Uninstall
 
-!!! danger
-    `helm uninstall` deletes the bundled MySQL, Keycloak and synthetic data volumes with everything else. Back up first.
-
 ```bash
 helm uninstall cohort-discovery -n cohort-discovery
+```
+
+This keeps the bundled MySQL, Keycloak and synthetic data volumes, so installing again under the same release name picks up the same data. It also leaves the setup Jobs and the `bunny-<host>` Secrets.
+
+!!! danger
+    To remove everything, delete the release's volumes too. This deletes the data, so back up first.
+
+```bash
+kubectl -n cohort-discovery delete pvc -l app.kubernetes.io/instance=cohort-discovery
 kubectl delete namespace cohort-discovery
 ```
 
-Deleting the namespace also removes what `helm uninstall` leaves: the setup Jobs and the `bunny-<host>` Secrets.
+The first command deletes only the chart's volumes, not a volume you made for the Athena files. Deleting the namespace removes everything else in it.
 
 ## Try the chart on a local cluster
 
@@ -165,10 +173,7 @@ Keycloak's forward must use the same port on both sides (`keycloak.port`), becau
 |---|---|
 | Images aren't published, and the API build needs access to HDR UK's private composer packages | Build them yourself ([The API](api.md#build-the-image)) |
 | The API image keeps the GitHub token used to build it, and the API and NLP images take in any local `.env` file | Use a read-only token, build from clean checkouts, and push only to a private registry |
-| The chart has no `imagePullSecrets`, so it can't pull from a registry that needs credentials | Use a registry your nodes can pull from without them, or give the nodes' service account access |
-| The bundled Keycloak runs in development mode | Use it for trials only; use your own identity provider for real users |
-| The full vocabulary import reads from a folder on the node (`hostPath`), which many managed clusters don't allow | Import on a cluster that allows it, or [load the vocabulary yourself](database.md#without-hostpath) |
+| The bundled Keycloak runs in development mode, and `helm install` warns when it's served beyond `localhost` | Use it for trials only; use your own identity provider for real users |
 | Every part runs as one replica | Expect short outages during upgrades |
-| `helm uninstall` deletes the data volumes | Back up first; keep data in an external MySQL |
 
 Fixing the chart's limitations is on the [tracker](https://github.com/HDRUK/cohort-discovery-service-stack/blob/main/docs/README.md). For limitations of the service itself, such as which identity providers work, see the service docs' [known limitations](https://hdruk.github.io/cohort-discovery-service-docs/developers/deploying/limitations/).

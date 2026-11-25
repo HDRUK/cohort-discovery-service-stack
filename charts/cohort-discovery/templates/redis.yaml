@@ -33,6 +33,9 @@ spec:
       labels:
         {{- include "cohort-discovery.labels" (dict "root" . "component" "redis") | nindent 8 }}
     spec:
+      {{- with include "cohort-discovery.imagePullSecrets" . }}
+      {{- . | nindent 6 }}
+      {{- end }}
       containers:
         - name: redis
           image: {{ include "cohort-discovery.image" .Values.images.redis }}

@@ -32,6 +32,9 @@ spec:
       labels:
         {{- include "cohort-discovery.labels" (dict "root" . "component" "web") | nindent 8 }}
     spec:
+      {{- with include "cohort-discovery.imagePullSecrets" . }}
+      {{- . | nindent 6 }}
+      {{- end }}
       {{- with include "cohort-discovery.podHostAliases" (dict "root" . "urls" (ternary (list .Values.api.appUrl) list (eq (include "cohort-discovery.ssoEnabled" .) "true"))) }}
       {{- . | nindent 6 }}
       {{- end }}

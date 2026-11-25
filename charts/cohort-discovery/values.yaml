@@ -1,5 +1,7 @@
 imagePullPolicy: IfNotPresent
 
+imagePullSecrets: []
+
 hostAliases: []
 
 waitResources:
@@ -227,6 +229,7 @@ provision:
 vocab:
   athena:
     hostPath: ""
+    existingClaim: ""
   resources:
     requests:
       cpu: 500m

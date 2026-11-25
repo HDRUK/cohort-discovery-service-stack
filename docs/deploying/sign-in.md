@@ -25,7 +25,7 @@ The chart runs Keycloak with the realm `cohort-discovery-service`, imported from
 
 The provision Job signs in as `bootstrap.adminEmail` with that user's Keycloak password, so the admin must be in `keycloak.users`; the chart refuses to install otherwise.
 
-It runs in Keycloak's development mode (`start-dev`), so it's for trials only. Changes to the realm on an existing volume need a [re-import](../customising/identity-and-access.md#re-import-the-realm).
+It runs in Keycloak's development mode (`start-dev`), so it's for trials only. `helm install` warns about this when Keycloak is behind the ingress or at a URL that isn't `localhost`. Changes to the realm on an existing volume need a [re-import](../customising/identity-and-access.md#re-import-the-realm).
 
 ## Your own OIDC provider
 

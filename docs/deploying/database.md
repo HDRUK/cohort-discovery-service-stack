@@ -15,7 +15,7 @@ Every part signs in as `mysql.username` (`cohort_discovery`) with the `mysql-pas
 
     `mysql.enabled: true` runs MySQL 8.4 as a StatefulSet with its own volume (`mysql.storageSize`, 10Gi by default; `mysql.storageClassName`). It creates both databases and the user, and starts with `local_infile` on for the vocabulary import. It also needs `mysql-root-password`. Leave `mysql.port` at 3306: the bundled MySQL's Service always listens there.
 
-    It's simple, but it's one pod with one volume that `helm uninstall` deletes. Use it for trials.
+    It's simple, but it's one pod with one volume. Use it for trials.
 
 === "External"
 
@@ -54,25 +54,39 @@ Athena needs an account and some vocabularies are licensed, so the stack never s
 
 ### Import with the Job
 
-Unzip the Athena download into a folder **on the node the Job will run on**. The chart sets no node selector, so put the folder on every node the Job could land on. Then set:
+The Job reads the unzipped Athena download from one of two places. Set one, not both: the chart refuses both.
 
-```yaml
-vocab:
-  athena:
-    hostPath: /srv/athena
-```
+=== "A volume"
+
+    Create a PVC in the release's namespace and copy the files to its root, for example with a short-lived pod and `kubectl cp`. If another pod keeps it mounted, give it the `ReadOnlyMany` or `ReadWriteMany` access mode. Then set:
+
+    ```yaml
+    vocab:
+      athena:
+        existingClaim: athena-vocabulary
+    ```
+
+=== "A folder on the node"
+
+    Unzip the download into a folder **on the node the Job will run on**. The chart sets no node selector, so put the folder on every node the Job could land on. Many managed clusters don't allow these `hostPath` volumes. Then set:
+
+    ```yaml
+    vocab:
+      athena:
+        hostPath: /srv/athena
+    ```
 
 On the next install or upgrade, the `vocab-import` Job runs after `api-init`, using the API image. It mounts the folder read-only and replaces each table. It does nothing if that vocabulary release is already imported, so later upgrades are quick. Give `helm` a longer `--timeout`, because it waits for the import, and give the bundled MySQL more than 10Gi. The NLP picks up new synonyms and ancestors within five minutes. [Vocabulary](../customising/vocabulary.md) has the folder's contents and how to import again.
 
-### Without `hostPath`
+### Without the Job
 
-Many managed clusters don't allow `hostPath` volumes. There, run the command the Job runs yourself, from anywhere that has the API image, the Athena files and access to MySQL, with the API's database settings:
+To import without the chart, run the command the Job runs yourself, from anywhere that has the API image, the Athena files and access to MySQL, with the API's database settings:
 
 ```bash
 php artisan app:import-omop-vocabs <folder> --create-schema --bulk --truncate --table=<TABLE>
 ```
 
-Run it once per table, in the order in `charts/cohort-discovery/files/vocab-import/vocab-import.sh`, with `VOCABULARY` last, then run `php artisan concepts:populate-ancestors` as the Job does. Reading from a volume instead of `hostPath` is on the [tracker](https://github.com/HDRUK/cohort-discovery-service-stack/blob/main/docs/tickets/S11-stack-cluster-readiness.md).
+Run it once per table, in the order in `charts/cohort-discovery/files/vocab-import/vocab-import.sh`, with `VOCABULARY` last, then run `php artisan concepts:populate-ancestors` as the Job does.
 
 ## Back up
 
