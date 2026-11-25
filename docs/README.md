@@ -43,14 +43,14 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [A1](tickets/A1-api-buildable-image.md) | api | Image anyone can build: public composer packages, `.dockerignore`, production defaults | D13 | todo |
 | [A2](tickets/A2-api-bootstrap-command.md) | api | Idempotent first-boot `app:bootstrap` with initial admin from env | A1 | todo |
 | [A3](tickets/A3-api-claims-mapping-file.md) | api | ~~Claims mapping from a mounted file~~ Not needed: D9 mounts a replacement config file instead, in S2 | D9 | not needed |
-| [A4](tickets/A4-api-externally-managed-access.md) | api | Externally managed access: flag, write guard, exposed to web | D8 | todo |
+| [A4](tickets/A4-api-externally-managed-access.md) | api | Externally managed access: deployment and per-user policy exposed to the web, advisory with activity-log warnings (DP-1261) | – | in progress (DP-1261) |
 | A5 | api | Stop logging request bodies (passwords reach the logs), and enforce retention on `request_audits`, `activity_log` and `nlp_query_logs`. Found in H1, see [personal data inventory](data-protection/personal-data-inventory.md) | – | on hold |
 | [A10](tickets/A10-api-feature-flag-defaults-file.md) | api | Feature flag defaults from `config/features.php`, so the stack sets them in `customisations/api/features.php` | – | todo |
 | [A6](tickets/A6-api-sso-custodian-provisioning.md) | api | Create custodians from SSO claims, behind a setting, as integrated mode already does. Found in S2 | – | todo |
 | [A7](tickets/A7-api-missing-claim-authoritative.md) | api | Under an authoritative sync, treat a missing groups claim as empty, so removing a user's last group removes their workgroups (D20). Found in S2 | – | todo |
 | [A8](tickets/A8-api-many-to-one-claim-mapping.md) | api | Map several IdP groups or roles to one workgroup or role, e.g. `ukri`, `breathe` and `ncs` to `UK-RESEARCH`. Found in S2. Done on branch `feat/DP-1254-many-to-one-claim-mapping`, which also adds `config/workgroups.php`; the stack is pinned to it | – | in review (DP-1254) |
 | [A9](tickets/A9-api-collection-workgroup-authorisation.md) | api | Authorise adding and removing a collection's workgroups; today any signed-in user can. Found in S4, may be DP-354 | – | todo |
-| [W1](tickets/W1-web-workgroups-read-only.md) | web | Workgroups read-only when access is managed externally | A4 | todo |
+| [W1](tickets/W1-web-workgroups-read-only.md) | web | IdP-managed memberships read-only or warned, per user; retire `manage-workgroups-internally` | A4 | todo |
 | [W2](tickets/W2-web-build-and-runtime-variables.md) | web | **Research:** build-time vs run-time variables and their knock-on effects ([findings](web-variables.md)) | – | done |
 | W4 | web | Optional: task URL at run time through `ServerDefaultProvider`, falling back to `NEXT_PUBLIC_TASK_URL`, so the published image needs no rebuild at another URL. See [web-variables.md](web-variables.md#if-w4-is-done) | D7 | todo |
 | W5 | web | `Custom403.tsx` reads `APPLICATION_MODE` in the browser, where it's `undefined`, so standalone installs may send "sign in again" to the organisation site instead of `/login`. Check in a browser, then fix upstream. Found in W2 | – | on hold |
