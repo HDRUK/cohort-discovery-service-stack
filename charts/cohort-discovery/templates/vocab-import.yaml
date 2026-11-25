@@ -1,5 +1,9 @@
-{{- with .Values.vocab.athena.hostPath }}
-{{- $root := $ -}}
+{{- $athena := .Values.vocab.athena -}}
+{{- if and $athena.hostPath $athena.existingClaim }}
+{{- fail "vocab.athena: set hostPath or existingClaim, not both" }}
+{{- end }}
+{{- if or $athena.hostPath $athena.existingClaim }}
+{{- $root := . -}}
 {{- $name := include "cohort-discovery.name" (dict "root" $root "component" "vocab-import") -}}
 apiVersion: v1
 kind: ConfigMap
@@ -31,6 +35,9 @@ spec:
       annotations:
         checksum/scripts: {{ ($root.Files.Glob "files/vocab-import/*").AsConfig | sha256sum }}
     spec:
+      {{- with include "cohort-discovery.imagePullSecrets" $root }}
+      {{- . | nindent 6 }}
+      {{- end }}
       restartPolicy: Never
       containers:
         - name: vocab-import
@@ -56,7 +63,13 @@ spec:
           configMap:
             name: {{ $name }}-scripts
         - name: athena
+          {{- with $athena.existingClaim }}
+          persistentVolumeClaim:
+            claimName: {{ . }}
+            readOnly: true
+          {{- else }}
           hostPath:
-            path: {{ . }}
+            path: {{ $athena.hostPath }}
             type: Directory
+          {{- end }}
 {{- end }}

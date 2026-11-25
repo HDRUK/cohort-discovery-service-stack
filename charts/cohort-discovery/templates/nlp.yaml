@@ -53,6 +53,9 @@ spec:
       annotations:
         checksum/nlp-config: {{ printf "%s%s" .Values.nlp.rulesJson .Values.nlp.mappingsJson | sha256sum }}
     spec:
+      {{- with include "cohort-discovery.imagePullSecrets" . }}
+      {{- . | nindent 6 }}
+      {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases:
         {{- toYaml . | nindent 8 }}

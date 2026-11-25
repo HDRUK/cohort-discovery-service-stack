@@ -36,6 +36,7 @@ metadata:
   labels:
     {{- include "cohort-discovery.labels" (dict "root" . "component" "keycloak") | nindent 4 }}
   annotations:
+    helm.sh/resource-policy: keep
     tilt.dev/down-policy: keep
 spec:
   accessModes:
@@ -84,6 +85,9 @@ spec:
         checksum/realm: {{ $realmJson | sha256sum }}
         checksum/theme: {{ toJson $themeFiles | sha256sum }}
     spec:
+      {{- with include "cohort-discovery.imagePullSecrets" . }}
+      {{- . | nindent 6 }}
+      {{- end }}
       containers:
         - name: keycloak
           image: {{ include "cohort-discovery.image" .Values.images.keycloak }}

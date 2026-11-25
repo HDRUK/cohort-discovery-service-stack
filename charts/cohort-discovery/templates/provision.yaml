@@ -99,6 +99,9 @@ spec:
       annotations:
         checksum/provision: {{ toYaml $files | sha256sum }}
     spec:
+      {{- with include "cohort-discovery.imagePullSecrets" . }}
+      {{- . | nindent 6 }}
+      {{- end }}
       restartPolicy: Never
       serviceAccountName: {{ $name }}
       {{- with .Values.hostAliases }}

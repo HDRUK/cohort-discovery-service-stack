@@ -20,6 +20,7 @@ metadata:
   labels:
     {{- include "cohort-discovery.labels" (dict "root" . "component" "mysql") | nindent 4 }}
   annotations:
+    helm.sh/resource-policy: keep
     tilt.dev/down-policy: keep
 spec:
   accessModes:
@@ -64,6 +65,9 @@ spec:
       labels:
         {{- include "cohort-discovery.labels" (dict "root" . "component" "mysql") | nindent 8 }}
     spec:
+      {{- with include "cohort-discovery.imagePullSecrets" . }}
+      {{- . | nindent 6 }}
+      {{- end }}
       containers:
         - name: mysql
           image: {{ include "cohort-discovery.image" .Values.images.mysql }}

@@ -9,6 +9,7 @@ No secret has a value here. Secrets go in `generated/secrets.values.yaml` under 
 | Value | Default | What |
 |---|---|---|
 | `imagePullPolicy` | `IfNotPresent` | For every container |
+| `imagePullSecrets` | `[]` | Pull secrets for every pod, as a list of `{name: ...}`. See [Third-party images](../deploying/services.md#third-party-images) |
 | `hostAliases` | `[]` | Host entries added to pods, for clusters that can't resolve the public hostnames. See [URLs and ingress](../deploying/services.md#urls-and-ingress) |
 | `waitResources` | small | Resources for the init containers that wait for other parts |
 | `images.<name>.repository`, `.tag` | pinned | The image for each part: `api`, `nlp`, `web`, `mysql`, `redis`, `curl`, `keycloak`, `socat`, `python`, `postgres`, `omopLite`, `bunny`. Every tag is pinned |
@@ -97,6 +98,7 @@ The web's server reads `API_BASE_URL` at run time: the chart sets it from `api.a
 | `provision.json` | *generated* | From `customisations/provision.json` |
 | `provision.resources` | | |
 | `vocab.athena.hostPath` | empty | The node folder holding an Athena download. Setting it turns on the `vocab-import` Job. See [Vocabulary](../customising/vocabulary.md) |
+| `vocab.athena.existingClaim` | empty | A PVC holding an Athena download, in place of `hostPath`. Setting it turns on the `vocab-import` Job. See [Database and vocabulary](../deploying/database.md#import-with-the-job) |
 | `vocab.resources` | 4Gi memory limit | |
 | `socat.resources` | small | The small forwarding containers that let pods reach `localhost` URLs |
 

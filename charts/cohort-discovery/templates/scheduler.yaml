@@ -26,6 +26,9 @@ spec:
           labels:
             {{- include "cohort-discovery.labels" (dict "root" $root "component" "scheduler") | nindent 12 }}
         spec:
+          {{- with include "cohort-discovery.imagePullSecrets" $root }}
+          {{- . | nindent 10 }}
+          {{- end }}
           restartPolicy: Never
           containers:
             - name: call-api

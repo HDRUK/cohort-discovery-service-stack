@@ -54,7 +54,7 @@ The chart checks its values and stops with a message naming the problem:
 
 ### Pods are stuck in `ImagePullBackOff`
 
-The cluster can't pull the images. Check the repositories and tags in your values, and that your nodes can pull from the registry without credentials (the chart has no `imagePullSecrets` yet).
+The cluster can't pull the images. Check the repositories and tags in your values, and, if the registry needs credentials, that `imagePullSecrets` names a pull secret in the namespace. See [Third-party images](deploying/services.md#third-party-images).
 
 ### Pods wait in `wait-for-api-init`
 

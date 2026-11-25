@@ -11,7 +11,7 @@ One image runs four things, all with the same configuration:
 | The `cohort-discovery-api` Deployment | The HTTP API, on `api.port` (8100) |
 | The `cohort-discovery-queue` Deployment | The queue worker (`php artisan horizon`), which runs jobs from Redis, such as processing the files BUNNYs upload |
 | The `api-init` Job | Migrations, seeding and the first admin, on every install and upgrade. See [Internals](../reference/internals.md#api-init) |
-| The `vocab-import` Job | The full vocabulary import, when you set `vocab.athena.hostPath`. See [Database and vocabulary](database.md) |
+| The `vocab-import` Job | The full vocabulary import, when you set `vocab.athena.hostPath` or `vocab.athena.existingClaim`. See [Database and vocabulary](database.md) |
 
 ## Build the image
 

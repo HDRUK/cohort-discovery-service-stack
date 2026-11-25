@@ -217,6 +217,11 @@ Read from api `b257363` and nlp `v1.9.1`; the import itself is not yet run on a 
 - **`provision.json` needs `description` only when a collection is created**: `provision.py` reads `collection_plan["description"]` without a default in its create branch.
 - **`helm install --dry-run=client` still checks ownership against the live cluster.** Rendering `NOTES.txt` under the release name `cohort-discovery` failed while a Tilt stack was running, because Tilt owns the resources. Use another release name and namespace for render checks.
 
+## Learnt closing the cluster gaps (S11, 2026-11-25)
+
+- **Helm adopts a kept PVC on reinstall.** On Rancher Desktop with Helm 3.17, a PVC with `helm.sh/resource-policy: keep` survived `helm uninstall` (Helm lists it as kept), and `helm install` under the same release name and namespace took it over with the same UID instead of failing on ownership. `kubectl delete pvc -l app.kubernetes.io/instance=<release>` then removed it.
+- **`helm template` doesn't render `NOTES.txt`.** Check it with `helm install --dry-run=client` and read the part after `NOTES:`.
+
 ## Learnt reviewing the docs (S10, 2026-11-17)
 
 - **Only BUNNY type A polls keep a collection active.** `CollectionNoActivityMonitor` suspends an active collection whose last type A entry in `collection_activity_logs` is older than `COLLECTION_INACTIVITY_MINUTES` (30). `TaskController` (around line 251) records every poll through `CollectionPollRecorder`, and makes a suspended collection active again on its next type A poll once `CollectionBacklogLimiter::hasDrainedFor` says the backlog has drained.

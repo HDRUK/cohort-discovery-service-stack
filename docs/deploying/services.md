@@ -46,7 +46,7 @@ Helm runs these after every install and upgrade, and waits for them. Each is saf
 | Job | Image | What | Turn off with |
 |---|---|---|---|
 | `api-init` | The API | Migrations, seeding, the first admin, the scheduler's account | Always runs |
-| `vocab-import` | The API | The full vocabulary import. See [Database and vocabulary](database.md#the-vocabulary) | Runs only with `vocab.athena.hostPath` |
+| `vocab-import` | The API | The full vocabulary import. See [Database and vocabulary](database.md#the-vocabulary) | Runs only with `vocab.athena.hostPath` or `vocab.athena.existingClaim` |
 | `provision` | `images.python` | Custodians, collection hosts and collections from `customisations/provision.json`. See [Collections](../customising/collections.md) | `provision.enabled: false` |
 
 With provisioning on, `synthetic.enabled` adds one Postgres (`images.postgres`) holding a synthetic database for each synthetic collection in `provision.json`, loaded with `images.omopLite`, and a BUNNY pod (`images.bunny`, type A and type B) for each. Turn it off for a real service. [Internals](../reference/internals.md) has the details.
@@ -77,6 +77,18 @@ images:
 ```
 
 `imagePullPolicy` applies to all of them.
+
+If a registry needs credentials, create a pull secret in the namespace and name it in `imagePullSecrets`. Every pod uses it:
+
+```bash
+kubectl -n cohort-discovery create secret docker-registry registry-credentials \
+  --docker-server=registry.example.org --docker-username='<user>' --docker-password='<token>'
+```
+
+```yaml
+imagePullSecrets:
+  - name: registry-credentials
+```
 
 ## Resources
 

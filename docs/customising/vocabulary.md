@@ -16,7 +16,7 @@ With Helm, pass `--set vocab.athena.hostPath=<absolute path>` and a longer `--ti
 |---|---|
 | Rancher Desktop, Docker Desktop, OrbStack | Your home folder is mounted into the VM at the same path, so anything under it works |
 | kind | Needs an `extraMounts` entry in the cluster config |
-| A shared cluster | Put the files on the node, or adapt the Job to read from a volume |
+| A shared cluster | Put the files on the node, or in a volume with `vocab.athena.existingClaim`. See [Database and vocabulary](../deploying/database.md#import-with-the-job) |
 
 An external MySQL needs `local_infile=1` for the import.
 

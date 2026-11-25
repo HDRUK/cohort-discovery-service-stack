@@ -10,6 +10,7 @@ metadata:
   labels:
     {{- include "cohort-discovery.labels" (dict "root" . "component" "synthetic-db") | nindent 4 }}
   annotations:
+    helm.sh/resource-policy: keep
     tilt.dev/down-policy: keep
 spec:
   accessModes:
@@ -54,6 +55,9 @@ spec:
       labels:
         {{- include "cohort-discovery.labels" (dict "root" . "component" "synthetic-db") | nindent 8 }}
     spec:
+      {{- with include "cohort-discovery.imagePullSecrets" . }}
+      {{- . | nindent 6 }}
+      {{- end }}
       containers:
         - name: postgres
           image: {{ include "cohort-discovery.image" .Values.images.postgres }}
@@ -104,6 +108,9 @@ spec:
       labels:
         {{- include "cohort-discovery.labels" (dict "root" $root "component" $component) | nindent 8 }}
     spec:
+      {{- with include "cohort-discovery.imagePullSecrets" $root }}
+      {{- . | nindent 6 }}
+      {{- end }}
       initContainers:
         - name: create-database
           image: {{ include "cohort-discovery.image" $root.Values.images.postgres }}

@@ -70,6 +70,13 @@ hostAliases:
 {{- end }}
 {{- end -}}
 
+{{- define "cohort-discovery.imagePullSecrets" -}}
+{{- with .Values.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end -}}
+
 {{- define "cohort-discovery.ssoEnabled" -}}
 {{- if or .Values.keycloak.enabled .Values.sso.issuer }}true{{ end -}}
 {{- end -}}

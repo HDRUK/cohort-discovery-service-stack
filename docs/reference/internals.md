@@ -43,7 +43,7 @@ See [Collections](../customising/collections.md).
 
 ## `vocab-import`
 
-Runs only when `vocab.athena.hostPath` is set, as a post-install and post-upgrade hook after `api-init`. It mounts the folder read-only, compares the release in `VOCABULARY.csv` with the one imported, and if they differ replaces each table from the CSV files, `VOCABULARY` last. See [Vocabulary](../customising/vocabulary.md).
+Runs only when `vocab.athena.hostPath` or `vocab.athena.existingClaim` is set, as a post-install and post-upgrade hook after `api-init`. It mounts the folder or volume read-only, compares the release in `VOCABULARY.csv` with the one imported, and if they differ replaces each table from the CSV files, `VOCABULARY` last. See [Vocabulary](../customising/vocabulary.md).
 
 ## How pods reach `localhost` URLs
 
