@@ -10,7 +10,7 @@ Found on 2026-11-16, at `b257363` (`v1.17.0-9`).
 - Flags are Laravel Pennant flags in the `features` table. `database/seeders/FeatureSeeder.php` holds them in a private `$features` array of `'name' => bool`.
 - The seeder creates only flags that aren't in the table yet, so an admin's later toggle is kept. It purges flags that are no longer listed.
 - The stack's init Job runs `FeatureSeeder` on every start (`charts/cohort-discovery/files/api-init/api-init.sh:37`). Deployment steps in the API re-run it when a flag is added.
-- The web reads the flags from the API and merges them with its own `DEFAULT_FLAGS` (`useFeatures`, see `02-verified-facts.md`). Standalone mode forces `manage-workgroups-internally` on in the web, whatever the flag says (W1).
+- The web reads the flags from the API and merges them with its own `DEFAULT_FLAGS` (`useFeatures`, see `02-verified-facts.md`). Standalone mode forces `manage-workgroups-internally` on in the web, whatever the flag says. W1 retires that flag.
 - A8 added `config/workgroups.php` read by `WorkgroupSeeder`, and the stack mounts `customisations/api/workgroups.php` over it. This ticket follows the same pattern.
 
 ## Steps

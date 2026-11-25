@@ -82,14 +82,17 @@ Agreed 2026-11-13: automatically, from `customisations/provision.json`, with omo
 ### D22. How the provisioner authenticates
 Agreed 2026-11-13, during S4. The host, collection and workgroup endpoints need a signed-in user's JWT, service accounts only reach `/api/v1/services/caller/*`, and password sign-in is off (D9, `customisations/api/auth.php`). So the provisioner signs in as `bootstrap.adminEmail` through Keycloak the way a browser does: the API's SSO redirect, Keycloak's login form, the API's callback, then `POST /api/auth/sso/exchange`. It needs no API change and uses the same path as everyone else, at the cost of depending on Keycloak's login form (`#kc-form-login`). Rejected: PHP in an API container (skips the API's validation and couples to its models), turning password sign-in back on, and an API ticket for service-account access (blocks S4).
 
+### D8. Where "access managed externally" is enforced
+Agreed 2026-11-18, in API ticket DP-1261 (A4). The API **tells** the web, per deployment and per user, which memberships an identity provider manages. It does not reject writes, for now; the web hides or warns, and the API records an activity-log warning when a managed membership is edited anyway.
+- **Per user, not one deployment flag.** Claims only reach a user through an SSO identity at an enabled provider that maps that claim, or through a Gateway token. A password-only user, or a user of a provider that doesn't map roles, is unmanaged even when the deployment is authoritative. `first_login` also depends on each user's `claims_synced_at`.
+- **Advisory, not 403.** Removing access must never be blocked: it's the incident lever, and lasts until the user's next sign-in. The per-user answer is a prediction (an IdP can leave a claim out, and nothing syncs). Roles and custodians have no edit endpoints to guard. Enforcement can be added later without changing the contract.
+- Rejected: a single deployment-level 403 guard, the earlier recommendation here, because it is wrong for mixed deployments (password plus SSO, or several providers).
+
 ## Open
 
 ### D7. What the published web image is
 **Recommendation:** one generic standalone image with neutral branding (W3), built with `NEXT_PUBLIC_*` values for `http://localhost:3000`. Changing URLs or branding means rebuilding through the stack's build script.
 **After W2 (2026-11-12):** the recommendation stands. Of the web's variables, only `NEXT_PUBLIC_TASK_URL` is wrong in a generic image served away from `localhost`, and only in what custodians are shown (the URL to give their BUNNY, and the footer's "API docs" link); no request uses it. Everything else is either read at run time already or doesn't apply to standalone. `NEXT_PUBLIC_LOGIN_URL` must stay unset. No HDR UK pipeline changes (D3). W4 makes the task URL a run-time setting without touching HDR UK's pipelines, if a no-rebuild image matters more later. See [web-variables.md](web-variables.md).
-
-### D8. Where "access managed externally" is enforced
-**Recommendation:** in the API. It derives a flag from the claim-sync policy (workgroups, roles and custodians synced `always` and authoritative), rejects writes to them with 403, and exposes the flag to the web. The web only hides controls (W1). A web-only gate isn't a security boundary.
 
 ### D14. Where CI deploys a custom-built stack
 Options:
