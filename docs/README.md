@@ -2,7 +2,7 @@
 
 > **AI disclosure:** Drafted with Claude Code on 2026-11-11 from a read of `project-daphne-web`, `project-daphne-api`, `project-daphne-nlp`, `somop`, `project-daphne-bunny-config`, `cohort-discovery-service-evaluator` and `cohort-discovery-service-docs`.
 
-**Status:** plan written. Decisions D1–D6, D9–D13, D15–D17 and D20–D22 are agreed; the rest are open. S0–S6, S8–S10, S12 and S13 are done.
+**Status:** plan written. Decisions D1–D6, D8–D17 and D20–D22 are agreed; the rest are open. S0–S6, S8–S10, S12 and S13 are done; S7 is not needed.
 
 ## Aims
 
@@ -63,7 +63,7 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [S4](tickets/S4-stack-provisioner.md) | stack | Provisioner: custodians, hosts and collections through the API, shared with workgroups and made active | S1, S2, D22 | done |
 | [S5](tickets/S5-stack-synthetic-bunnies.md) | stack | A synthetic database and BUNNY for each synthetic collection in `provision.json`, set up automatically | S4, D16 | done |
 | [S6](tickets/S6-stack-non-local-installs.md) | stack | Non-local installs: ingress, external stores, example values | S1–S5 | done |
-| [S7](tickets/S7-stack-ci-build-and-deploy.md) | stack | CI: build from any ref, push to GHCR, deploy | S1, D14 | todo |
+| [S7](tickets/S7-stack-ci-build-and-deploy.md) | stack | ~~CI: build from any ref, push to GHCR, deploy~~ Not needed: deployers run their own stacks and the docs show how (D14) | – | not needed |
 | [S8](tickets/S8-stack-branding-overlay.md) | stack | "Feasibility Tool" neutral branding in `config/branding/`, and the D6 build script used by Tilt | D6 | done |
 | [S9](tickets/S9-stack-user-docs.md) | stack | User docs: a short README, sectioned docs, an MkDocs site | S6 | done |
 | [S10](tickets/S10-stack-docs-restructure.md) | stack | Restructure the user docs after review: one place to read, deploy order, connecting real BUNNYs, one diagram, links to the service docs | S9 | done |
@@ -77,4 +77,4 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 - **In parallel from the start:** W2, N1, S0.
 - **Then:** S1. It starts with its own init Job, so it doesn't wait for A1 and A2; it switches to `app:bootstrap` when A2 lands. S1 is the first point where the stack runs end to end.
 - **After S1:** S2, S3, S4 → S5, S8, and A4 → W1.
-- **Last:** S6 and S7, then close H1 (rotation, licence files, data protection hand-over). It blocks nothing.
+- **Last:** S6, then close H1 (rotation, licence files, data protection hand-over). It blocks nothing.

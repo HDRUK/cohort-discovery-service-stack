@@ -1,5 +1,7 @@
 # S7. Stack: CI build and deploy
 
+> **Not needed** (D14, 2026-11-25): deployers run their own stacks, and the docs show how.
+
 **Repo:** this one · **Depends on:** S1, D14 (deploy also needs S6) · **Decisions:** D2, D5, D6, D14
 
 ## Goal

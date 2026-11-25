@@ -15,7 +15,6 @@ On top of the core it adds:
 - an OMOP vocabulary build, minimal by default or a full Athena import;
 - a bootstrap that seeds an admin and provisions custodians, collection hosts and collections through the API;
 - synthetic collections, served by somop-generated data and BUNNY daemons;
-- CI that builds images from any branch, pushes them to GHCR and deploys.
 
 HDR UK's own dev, preprod and prod deployments are separate and must keep working unchanged.
 
