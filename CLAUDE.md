@@ -20,7 +20,7 @@ HDR UK's own dev, preprod and prod deployments are separate and must keep workin
 
 ## Status
 
-Planning, S0 (scaffold), S1 (Helm core and Tilt), S2 (Keycloak), S3 (vocabulary), S4 (provisioner), S5 (synthetic BUNNYs), S6 (non-local installs), S8 (branding), S9 (user docs and MkDocs site), S10 (docs restructure), S12 (Tilt settings) and S13 (deploy docs by component) are done. The site is published at https://hdruk.github.io/cohort-discovery-service-stack/ and links to the general service docs (https://hdruk.github.io/cohort-discovery-service-docs/) instead of repeating them. The user docs are the sectioned pages under `docs/` listed in `mkdocs.yml`; the planning files below are left out of the site. The plan is in `docs/`:
+Planning, S0 (scaffold), S1 (Helm core and Tilt), S2 (Keycloak), S3 (vocabulary), S4 (provisioner), S5 (synthetic BUNNYs), S6 (non-local installs), S8 (branding), S9 (user docs and MkDocs site), S10 (docs restructure), S12 (Tilt settings) and S13 (deploy docs by component) are done; S7 (CI deploy) is not needed (D14). The site is published at https://hdruk.github.io/cohort-discovery-service-stack/ and links to the general service docs (https://hdruk.github.io/cohort-discovery-service-docs/) instead of repeating them. The user docs are the sectioned pages under `docs/` listed in `mkdocs.yml`; the planning files below are left out of the site. The plan is in `docs/`:
 
 | File | What |
 |---|---|
