@@ -222,6 +222,7 @@ keycloak-user-{{ . | kebabcase }}
 {{- with .Values.api.authPhp }}{{ $_ := set $files "auth.php" . }}{{ end -}}
 {{- with .Values.api.claimsAccessControlPhp }}{{ $_ := set $files "claimsaccesscontrol.php" . }}{{ end -}}
 {{- with .Values.api.workgroupsPhp }}{{ $_ := set $files "workgroups.php" . }}{{ end -}}
+{{- with .Values.api.featuresPhp }}{{ $_ := set $files "features.php" . }}{{ end -}}
 {{- toJson $files -}}
 {{- end -}}
 

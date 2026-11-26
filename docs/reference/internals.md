@@ -21,7 +21,8 @@ Runs `charts/cohort-discovery/files/api-init/api-init.sh` in the API image, as a
 | Database migrations, the `omop` migrations, `deploy:run` | Only pending ones run |
 | `WorkgroupSeeder` | Every time. Creates the workgroups in `customisations/api/workgroups.php` that are missing, and never deletes one |
 | `RolesAndPermissionsSeeder` | Only when `roles` is empty |
-| `StateSeeder`, `FeatureSeeder`, `PersonalAccessClientSeeder` | Every time. They create only what's missing |
+| `StateSeeder`, `PersonalAccessClientSeeder` | Every time. They create only what's missing |
+| `FeatureSeeder` | Every time. Deletes stored flags that `customisations/api/features.php` doesn't list, and per-user or per-workgroup values of flags that can't be overridden. Flags take their default when first read |
 | `MinimalOmopSeeder` | Only when `omop.concept` is empty, so it never touches a full import |
 | `ensure-admin.php`: the custodian `bootstrap.custodianName`, and the admin `bootstrap.adminEmail` with role `admin`, as a member of it | Only when `users` is empty, so an install with users is never rewritten. It finds each record before creating it, so a run that failed part-way can be repeated |
 | The scheduler's service account, from the `scheduler-client-id` and `scheduler-client-secret` secrets | Every time. Left alone when it matches, updated when it doesn't |
