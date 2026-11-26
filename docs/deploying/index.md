@@ -175,4 +175,4 @@ Keycloak's forward must use the same port on both sides (`keycloak.port`), becau
 | The bundled Keycloak runs in development mode, and `helm install` warns when it's served beyond `localhost` | Use it for trials only; use your own identity provider for real users |
 | Every part runs as one replica | Expect short outages during upgrades |
 
-Fixing the chart's limitations is on the [tracker](https://github.com/HDRUK/cohort-discovery-service-stack/blob/main/docs/README.md). For limitations of the service itself, such as which identity providers work, see the service docs' [known limitations](https://hdruk.github.io/cohort-discovery-service-docs/developers/deploying/limitations/).
+For limitations of the service itself, such as which identity providers work, see the service docs' [known limitations](https://hdruk.github.io/cohort-discovery-service-docs/developers/deploying/limitations/).

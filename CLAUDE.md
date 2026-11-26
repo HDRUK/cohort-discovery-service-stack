@@ -24,9 +24,9 @@ Planning, S0 (scaffold), S1 (Helm core and Tilt), S2 (Keycloak), S3 (vocabulary)
 
 | File | What |
 |---|---|
-| `docs/README.md` | Aims, ticket tracker (status, repo, dependencies), suggested order |
-| `docs/01-decisions.md` | Agreed decisions and open ones, each with a recommendation |
-| `docs/02-verified-facts.md` | The state of every repo involved, with file paths. Read this before exploring |
+| `docs/README.md` | Aims, ticket tracker (status, repo, dependencies), suggested order. Local only, git-ignored |
+| `docs/01-decisions.md` | Agreed decisions and open ones, each with a recommendation. Local only, git-ignored |
+| `docs/02-verified-facts.md` | The state of every repo involved, with file paths. Read this before exploring. Local only, git-ignored |
 | `docs/tickets/` | One self-contained plan per ticket. Kept locally and git-ignored, not published |
 
 Use `/stack-ticket <ID>` to pick up a ticket, `/stack-ticket next` to see what can start, and `/raise-pr` for the PR description.
