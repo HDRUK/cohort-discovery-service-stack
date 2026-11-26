@@ -40,8 +40,8 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | ID | Repo | Ticket | Depends on | Status |
 |---|---|---|---|---|
 | [H1](tickets/H1-open-source-hygiene.md) | all | Open-source hygiene: secrets, personal paths, licence, GDPR review | – | in progress |
-| [A1](tickets/A1-api-buildable-image.md) | api | Keep the build's GitHub token out of the image, add a `.dockerignore`, default `REBUILD_DB` to `0`. The token stays required and nothing is published (D2) | – | in review (api #378) |
-| [A2](tickets/A2-api-bootstrap-command.md) | api | Idempotent first-boot `app:bootstrap` with initial admin from env | A1 | todo |
+| [A1](tickets/A1-api-buildable-image.md) | api | ~~Image anyone can build, token kept out of the image~~ Not needed: deployers build with a GitHub token, and the API's image build stays as it is (D2) | – | not needed |
+| [A2](tickets/A2-api-bootstrap-command.md) | api | Idempotent first-boot `app:bootstrap` with initial admin from env | – | todo |
 | [A3](tickets/A3-api-claims-mapping-file.md) | api | ~~Claims mapping from a mounted file~~ Not needed: D9 mounts a replacement config file instead, in S2 | D9 | not needed |
 | [A4](tickets/A4-api-externally-managed-access.md) | api | Externally managed access: deployment and per-user policy exposed to the web, advisory with activity-log warnings. Merged to `dev` (DP-1261, #367) | – | done |
 | A5 | api | Stop logging request bodies (passwords reach the logs), and enforce retention on `request_audits`, `activity_log` and `nlp_query_logs`. Found in H1, see [personal data inventory](data-protection/personal-data-inventory.md) | – | on hold |

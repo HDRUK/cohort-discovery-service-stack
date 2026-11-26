@@ -1,6 +1,6 @@
 # A2. API: an idempotent first-boot bootstrap
 
-**Repo:** `project-daphne-api` · **Depends on:** A1 · **Decisions:** D4, D15
+**Repo:** `project-daphne-api` · **Depends on:** – · **Decisions:** D4, D15
 
 ## Goal
 One command, `php artisan app:bootstrap`, takes an empty database to a usable standalone install, and running it again changes nothing. The stack's init container runs it (S1).

@@ -8,7 +8,7 @@ Agreed decisions are fixed unless reopened here. Each open decision has a recomm
 The stack repo holds the plan and tracker. Changes to web, API and NLP are tickets in this tracker that are delivered as PRs in those repos.
 
 ### D2. Images aren't published
-Agreed 2026-11-26, replacing the earlier plan to publish public images to GHCR. Deployers build the web, API and NLP images from the submodules and configure them through values, mounted files and overrides; that is the point of the stack. Building the API needs a GitHub token, and that is accepted. Rejected: publish jobs on the services' release tags (A1, N1).
+Agreed 2026-11-26, replacing the earlier plan to publish public images to GHCR. Deployers build the web, API and NLP images from the submodules and configure them through values, mounted files and overrides; that is the point of the stack. Building the API needs a GitHub token, and that is accepted. Rejected: publish jobs on the services' release tags (A1, N1), and changing the API's image build to suit the stack (A1 is not needed).
 
 ### D3. Web build-time and run-time variables stay as they are unless a change is necessary
 Moving variables between build time and run time changes HDR UK's own pipelines and Terraform. That only happens if W2 shows it is necessary, and then together with a list of the changes HDR UK's stack would need.
