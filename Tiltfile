@@ -51,7 +51,7 @@ API_HOST_URL = 'http://localhost:' + API_HOST_PORT
 WEB_HOST_URL = 'http://localhost:' + WEB_HOST_PORT
 
 if not os.getenv('GITHUB_TOKEN', ''):
-    fail('GITHUB_TOKEN is not set. The API image needs it to install the private hdruk/* composer packages (until A1). Run: export GITHUB_TOKEN=$(gh auth token)')
+    fail('GITHUB_TOKEN is not set. The API image build needs it to install the hdruk/* composer packages. Run: export GITHUB_TOKEN=$(gh auth token)')
 
 local('scripts/local-secrets.sh', quiet=True)
 local('scripts/customisations-values.sh', quiet=True)

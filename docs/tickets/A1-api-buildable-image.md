@@ -1,5 +1,7 @@
 # A1. API: an image anyone can build
 
+> **Not needed** (D2, 2026-11-26): the stack doesn't publish images, deployers build the API with a GitHub token, and the API repo's image build is left as it is. The deploy docs warn about the token and local files ending up in the image. For the record, `dev` still declares three `hdruk/*` packages as `vcs` repositories, and all of them are public.
+
 **Repo:** `project-daphne-api` · **Depends on:** D13 · **Decisions:** D2
 
 ## Goal

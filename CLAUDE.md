@@ -97,7 +97,7 @@ scripts/local-secrets.sh              # writes generated/secrets.values.yaml onc
 scripts/customisations-values.sh      # customisations/ -> generated/customisations.values.yaml; Tilt runs it too
 helm lint charts/cohort-discovery -f generated/secrets.values.yaml -f generated/customisations.values.yaml
 python3 -m unittest discover -s tests/provision   # provisioner tests, standard library only
-export GITHUB_TOKEN=$(gh auth token)  # the API image build needs it until A1
+export GITHUB_TOKEN=$(gh auth token)  # the API image build needs it
 tilt up                               # the whole stack, local contexts only
 tilt up -- --api-port=18100           # other host ports or --keycloak=false; or set them in tilt_config.json (git-ignored)
 tilt down                             # keeps the MySQL, Keycloak and synthetic volumes
