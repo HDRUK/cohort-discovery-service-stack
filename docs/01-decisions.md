@@ -19,7 +19,7 @@ The default stack runs `APP_OPERATION_MODE=standalone` / `APPLICATION_MODE=stand
 ### D5. web, api and nlp are git submodules of this repo
 Each is pinned to a release tag.
 
-**Exception, 2026-11-25:** all three are pinned to `dev` commits so the stack has DP-1254 (A8), DP-1261 (A4) and DP-1262 (W1) before they are released: api `1911d5e`, web `cd5687e1`, nlp `cdc8887`. The default tags in `images` (api `b257363`, web `v1.12.0`, nlp `v1.9.1`) don't match these pins. Tilt builds from the submodules, so it isn't affected; a cluster install sets its own tags (see the deploy docs). When these are in a release, re-pin to the release tags and set the image tags to match.
+**Exception, 2026-11-26:** all three are pinned to `dev` commits so the stack has DP-1254 (A8), DP-1261 (A4), DP-1262 (W1) and DP-1277 (A10) before they are released: api `0091af4`, web `bafb4063`, nlp `cdc8887`. The default tags in `images` (api `b257363`, web `v1.12.0`, nlp `v1.9.1`) don't match these pins. Tilt builds from the submodules, so it isn't affected; a cluster install sets its own tags (see the deploy docs). When these are in a release, re-pin to the release tags and set the image tags to match.
 
 ### D11. Repo name: `cohort-discovery-service-stack`
 Agreed 2026-11-11. The repo is `HDRUK/cohort-discovery-service-stack` (private for now).
