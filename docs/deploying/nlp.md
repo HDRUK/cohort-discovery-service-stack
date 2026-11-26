@@ -12,7 +12,7 @@ docker build -t $REGISTRY/nlp:1 services/nlp
 docker push $REGISTRY/nlp:1
 ```
 
-Add `--platform linux/amd64` on an Apple Silicon Mac. Build from a clean checkout: the NLP has no `.dockerignore` and loads a `.env` file at start-up, so a local `.env` in `services/nlp` would be copied in and used (ticket [N1](https://github.com/HDRUK/cohort-discovery-service-stack/blob/main/docs/tickets/N1-nlp-image-and-config.md)). Otherwise the image has no settings built in: its rules come from mounted files, so you rebuild only to change the code.
+Add `--platform linux/amd64` on an Apple Silicon Mac. Build from a clean checkout: the NLP has no `.dockerignore` and loads a `.env` file at start-up, so a local `.env` in `services/nlp` would be copied in and used. Otherwise the image has no settings built in: its rules come from mounted files, so you rebuild only to change the code.
 
 ## Use your own image
 

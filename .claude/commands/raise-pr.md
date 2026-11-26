@@ -8,7 +8,7 @@ Write a PR description for the changes on the current branch.
 
 ## Ticket
 
-Take the ticket from `$ARGUMENTS` if it's given; otherwise read it from the branch name (`feat/S1-helm-core` → `S1`). Link the ticket plan: `docs/tickets/<ID>-*.md`. If there's also a Jira ticket, link it too: `https://hdruk.atlassian.net/browse/DP-1234`.
+Take the ticket from `$ARGUMENTS` if it's given; otherwise read it from the branch name (`feat/S1-helm-core` → `S1`). Name the ticket ID, but don't link its plan: `docs/tickets/` is kept locally and isn't published. If there's also a Jira ticket, link it too: `https://hdruk.atlassian.net/browse/DP-1234`.
 
 ## Steps
 

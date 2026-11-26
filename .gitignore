@@ -12,3 +12,4 @@ customisations/athena/*
 !customisations/athena/README.md
 site/
 tilt_config.json
+docs/tickets/

@@ -19,7 +19,7 @@
 |---|---|
 | [01-decisions.md](01-decisions.md) | Agreed and open decisions |
 | [02-verified-facts.md](02-verified-facts.md) | The current state of each repo, checked 2026-11-11 |
-| [tickets/](tickets/) | One plan per ticket, written so an agent can start from that file plus `02-verified-facts.md` |
+| `tickets/` | One plan per ticket, written so an agent can start from that file plus `02-verified-facts.md`. Kept locally and git-ignored, not published |
 | [web-variables.md](web-variables.md) | Which web variables are fixed at build time, and what a generic image needs (W2) |
 | [alternatives/](alternatives/) | Other ways to run the service, such as [Docker Compose](alternatives/docker-compose.md) |
 | [data-protection/](data-protection/) | What the service holds about people, for data protection review ([inventory](data-protection/personal-data-inventory.md)) |
@@ -70,7 +70,7 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [S11](tickets/S11-stack-cluster-readiness.md) | stack | Chart gaps for real clusters: Keycloak `start-dev`, `imagePullSecrets`, vocabulary import from a volume, volumes on uninstall. Found in S10 | S6 | in review |
 | [S12](tickets/S12-stack-tilt-settings.md) | stack | Tilt settings (host ports, Keycloak on or off) in a git-ignored `tilt_config.json` or flags, instead of exported env vars | S1 | done |
 | [S13](tickets/S13-stack-deploy-docs-by-component.md) | stack | Split "Deploy to a cluster" into a page per part: how to build and override the API, web and NLP images, sign-in, the database and vocabulary, and the supporting services | S10 | done |
-| [SD1](tickets/SD1-service-docs-link-to-stack.md) | service docs | Link the general service docs to the stack, and fix their out-of-date pages. Found in S10 | S10 | todo |
+| [SD1](tickets/SD1-service-docs-link-to-stack.md) | service docs | Link the general service docs to the stack, and fix their out-of-date pages. Found in S10 | S10 | in review (service docs #25) |
 
 ## Suggested order
 
