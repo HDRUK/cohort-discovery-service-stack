@@ -30,7 +30,7 @@ No secret has a value here. Secrets go in `generated/secrets.values.yaml` under 
 | `api.appEnv` | `production` | Laravel's `APP_ENV` |
 | `api.logLevel` | `info` | Laravel's log level |
 | `api.standaloneJwtTtlMinutes` | `120` | How long a sign-in lasts, in minutes |
-| `api.authPhp`, `api.claimsAccessControlPhp`, `api.workgroupsPhp` | *generated* | From `customisations/api/` |
+| `api.authPhp`, `api.claimsAccessControlPhp`, `api.workgroupsPhp`, `api.featuresPhp` | *generated* | From `customisations/api/` |
 | `api.extraEnv` | `{}` | Extra non-secret environment variables for the API, queue, `api-init` and `vocab-import` containers |
 | `api.storageSize`, `api.storageClassName`, `api.storageAccessMode` | `5Gi`, cluster default, `ReadWriteOnce` | The volume the API and queue share for uploaded files. See [File storage](../deploying/api.md#file-storage) |
 | `api.resources`, `queue.resources` | | Requests and memory limits |

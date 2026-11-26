@@ -43,7 +43,7 @@ The service docs' [branding page](https://hdruk.github.io/cohort-discovery-servi
 
 ### Known gaps
 
-A few things still come from the web itself rather than `branding/`: the browser-tab favicon, the copyright text and some HDR UK wording on signed-in pages. Fixing that upstream is on the [tracker](https://github.com/HDRUK/cohort-discovery-service-stack/blob/main/docs/README.md).
+A few things still come from the web itself rather than `branding/`: the browser-tab favicon, the copyright text and some HDR UK wording on signed-in pages.
 
 ## Keycloak sign-in page
 

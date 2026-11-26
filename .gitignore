@@ -13,3 +13,7 @@ customisations/athena/*
 site/
 tilt_config.json
 docs/tickets/
+docs/README.md
+docs/01-decisions.md
+docs/02-verified-facts.md
+docs/web-variables.md

@@ -74,13 +74,13 @@ When everything in the Tilt UI (http://localhost:10350) is green, open http://lo
 | `services/` | The web, API and NLP source, as git submodules pinned to releases |
 | `scripts/` | Generating local secrets, turning `customisations/` into chart values, building the branded web image |
 | `Tiltfile` | Local development |
-| `docs/` | The source of the docs site, plus the project's [plan and ticket tracker](docs/README.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md) |
+| `docs/` | The source of the docs site. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 For the service itself (BUNNY, identity providers, OMOP requirements), see the general [Cohort Discovery Service docs](https://hdruk.github.io/cohort-discovery-service-docs/).
 
 ## Status
 
-Usable for local evaluation and development, and installable on a shared cluster, with the [known limitations](https://hdruk.github.io/cohort-discovery-service-stack/deploying/#known-limitations). See the [tracker](docs/README.md).
+Usable for local evaluation and development, and installable on a shared cluster, with the [known limitations](https://hdruk.github.io/cohort-discovery-service-stack/deploying/#known-limitations).
 
 ## Personal data
 
