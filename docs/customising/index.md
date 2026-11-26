@@ -57,6 +57,7 @@ Under Tilt, a few values are set by the Tiltfile and override any values file: `
 | `api/auth.php` | Sign-in settings: password sign-in is off, so everyone uses single sign-on | [Identity and access](identity-and-access.md#password-sign-in) |
 | `api/claimsaccesscontrol.php` | How Keycloak groups and roles become the app's workgroups and roles | [Identity and access](identity-and-access.md#map-keycloak-names-to-the-app) |
 | `api/workgroups.php` | The workgroups the app has | [Identity and access](identity-and-access.md#workgroups) |
+| `api/features.php` | The API's feature flags and their default values | [The API](../deploying/api.md#feature-flags) |
 | `keycloak/realm.json` | The Keycloak realm's client and settings | [Identity and access](identity-and-access.md#the-realm) |
 | `keycloak/theme/` | The look of the Keycloak sign-in page | [Branding](branding.md#keycloak-sign-in-page) |
 | `web/branding/` | The web app's name, text, colours, logo and legal pages | [Branding](branding.md) |
@@ -71,6 +72,7 @@ You can delete any file you don't want to change. The service then uses its own 
 | `api/auth.php` | Offers password sign-in again |
 | `api/claimsaccesscontrol.php` | Syncs workgroups only on a user's first sign-in and never removes them, so Keycloak no longer decides access |
 | `api/workgroups.php` | Seeds the API's own nine workgroups |
+| `api/features.php` | Uses the API's own flags and defaults, identical at the pinned commit |
 | `nlp/*.json` | Uses its own copy, identical at the pinned release |
 | `provision.json` | Creates no collections |
 | `keycloak/realm.json` | Fails to install while Keycloak is on, with a message saying so |

@@ -86,6 +86,7 @@ api:
   authPhp: ""
   claimsAccessControlPhp: ""
   workgroupsPhp: ""
+  featuresPhp: ""
   extraEnv: {}
   storageSize: 5Gi
   storageClassName: ""

@@ -66,15 +66,24 @@ From these and the other parts' values, the chart writes the environment to the 
 
 ### Config files
 
-Three of the API's Laravel config files are replaced by your copies in `customisations/api/`. `scripts/customisations-values.sh` puts them in `api.authPhp`, `api.claimsAccessControlPhp` and `api.workgroupsPhp`, and the chart mounts each one over the file of the same name in `/var/www/config/`:
+Four of the API's Laravel config files are replaced by your copies in `customisations/api/`. `scripts/customisations-values.sh` puts them in `api.authPhp`, `api.claimsAccessControlPhp`, `api.workgroupsPhp` and `api.featuresPhp`, and the chart mounts each one over the file of the same name in `/var/www/config/`:
 
 | File | What |
 |---|---|
 | `auth.php` | Whether password sign-in is offered alongside single sign-on. See [Sign-in](sign-in.md#password-sign-in) |
 | `claimsaccesscontrol.php` | How identity-provider groups and roles map to the app's roles, custodians and workgroups. See [Identity and access](../customising/identity-and-access.md#map-keycloak-names-to-the-app) |
 | `workgroups.php` | The workgroups `api-init` creates |
+| `features.php` | The feature flags and their defaults. See [Feature flags](#feature-flags) |
 
 Each file replaces the service's whole file, so start from the release's copy. After an upgrade, compare yours with the new release's.
+
+### Feature flags
+
+`customisations/api/features.php` lists every feature flag the API has, each with its `default` and, for some, `'overridable' => false`. To change what a flag starts as, change its `default`.
+
+- **It sets defaults only.** A flag takes its default the first time it's read and is stored from then on. Changing the file later doesn't change a flag that's already stored: switch it as an admin in the app, or reset the database.
+- **List every flag.** `api-init` deletes any stored flag the file doesn't list. After an upgrade, add the flags the new release adds.
+- **Leave `overridable` as the release has it.** It marks flags that can't be switched per user or per workgroup.
 
 ### Anything else: `api.extraEnv`
 

@@ -33,6 +33,7 @@ api_section() {
   block_value "  " authPhp api/auth.php
   block_value "  " claimsAccessControlPhp api/claimsaccesscontrol.php
   block_value "  " workgroupsPhp api/workgroups.php
+  block_value "  " featuresPhp api/features.php
 }
 
 nlp_section() {
