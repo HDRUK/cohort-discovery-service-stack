@@ -22,7 +22,7 @@ docker build --secret id=github_token,env=GITHUB_TOKEN -t $REGISTRY/api:1 servic
 docker push $REGISTRY/api:1
 ```
 
-- **The build needs a GitHub token** that can read HDR UK's private `hdruk/*` composer packages, for now. The Dockerfile writes it to `/tmp/composer/auth.json` and doesn't delete it, so **the token stays in the image**. Use a token that can only read those packages, and push the image only to a private registry. Removing the token is ticket [A1](https://github.com/HDRUK/cohort-discovery-service-stack/blob/main/docs/tickets/A1-api-buildable-image.md).
+- **The build needs a GitHub token.** The Dockerfile writes it to `/tmp/composer/auth.json` and doesn't delete it, so **the token stays in the image**. Use a token with read-only access, and push the image only to a private registry. Keeping it out of the image is ticket [A1](https://github.com/HDRUK/cohort-discovery-service-stack/blob/main/docs/tickets/A1-api-buildable-image.md).
 - **Build from a clean checkout.** The API has no `.dockerignore`, so a local `.env` or key file in `services/api` is copied into the image and read at run time (also A1).
 - **Build for your cluster's CPU architecture**: add `--platform linux/amd64` on an Apple Silicon Mac.
 - **The chart supplies the settings.** Built from a clean checkout, one image works for any URL, database or identity provider, so you rebuild only to change the code.

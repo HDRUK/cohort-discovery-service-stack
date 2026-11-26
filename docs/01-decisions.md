@@ -7,8 +7,8 @@ Agreed decisions are fixed unless reopened here. Each open decision has a recomm
 ### D1. The plan lives in this repo
 The stack repo holds the plan and tracker. Changes to web, API and NLP are tickets in this tracker that are delivered as PRs in those repos.
 
-### D2. Images are published publicly to GHCR
-`ghcr.io/hdruk/<service>`, public packages.
+### D2. Images aren't published
+Agreed 2026-11-26, replacing the earlier plan to publish public images to GHCR. Deployers build the web, API and NLP images from the submodules and configure them through values, mounted files and overrides; that is the point of the stack. Building the API needs a GitHub token, and that is accepted. Rejected: publish jobs on the services' release tags (A1, N1).
 
 ### D3. Web build-time and run-time variables stay as they are unless a change is necessary
 Moving variables between build time and run time changes HDR UK's own pipelines and Terraform. That only happens if W2 shows it is necessary, and then together with a list of the changes HDR UK's stack would need.
@@ -97,11 +97,10 @@ Agreed 2026-11-18, in API ticket DP-1261 (A4). The API **tells** the web, per de
 ### D14. No CI deploy of the stack
 Agreed 2026-11-25. The stack is a guide for deployers to build and run their own, not a service HDR UK deploys from CI, so S7 is dropped. Building images and deploying them is the deployer's job, as the deploy docs describe. Rejected: a self-hosted runner with kind or k3s, an existing namespace through Helm, and a VM running Compose.
 
-## Open
+### D7. No generic published web image
+Agreed 2026-11-26, following D2. Deployers build the web image with their own URLs and branding through `scripts/build-web.sh`, so there is no generic image to design. W2's findings stay in [web-variables.md](web-variables.md); W4 is not needed.
 
-### D7. What the published web image is
-**Recommendation:** one generic standalone image with neutral branding (W3), built with `NEXT_PUBLIC_*` values for `http://localhost:3000`. Changing URLs or branding means rebuilding through the stack's build script.
-**After W2 (2026-11-12):** the recommendation stands. Of the web's variables, only `NEXT_PUBLIC_TASK_URL` is wrong in a generic image served away from `localhost`, and only in what custodians are shown (the URL to give their BUNNY, and the footer's "API docs" link); no request uses it. Everything else is either read at run time already or doesn't apply to standalone. `NEXT_PUBLIC_LOGIN_URL` must stay unset. No HDR UK pipeline changes (D3). W4 makes the task URL a run-time setting without touching HDR UK's pipelines, if a no-rebuild image matters more later. See [web-variables.md](web-variables.md).
+## Open
 
 ### D18. Which Redis the stack runs
 Found during S1. Redis 7.4 and later aren't under an OSI licence: 7.4 is RSALv2/SSPL, and 8.x adds AGPL. 7.2 is the last BSD-licensed line. The API only needs a Redis-protocol server for its queue, cache and sessions.

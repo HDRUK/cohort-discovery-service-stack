@@ -30,7 +30,7 @@ Copy one to `my-values.yaml` and choose your hostnames now, because the other pa
 
 ## 2. Build and push the images
 
-Images aren't published yet. Build the API, web and NLP images as their pages describe, push them to a registry your cluster can pull from, and set `images.api`, `images.web` and `images.nlp` in `my-values.yaml`:
+The stack doesn't publish images. Build the API, web and NLP images as their pages describe, push them to a registry your cluster can pull from, and set `images.api`, `images.web` and `images.nlp` in `my-values.yaml`:
 
 ```yaml
 images:
@@ -171,7 +171,6 @@ Keycloak's forward must use the same port on both sides (`keycloak.port`), becau
 
 | Limitation | What to do |
 |---|---|
-| Images aren't published, and the API build needs access to HDR UK's private composer packages | Build them yourself ([The API](api.md#build-the-image)) |
 | The API image keeps the GitHub token used to build it, and the API and NLP images take in any local `.env` file | Use a read-only token, build from clean checkouts, and push only to a private registry |
 | The bundled Keycloak runs in development mode, and `helm install` warns when it's served beyond `localhost` | Use it for trials only; use your own identity provider for real users |
 | Every part runs as one replica | Expect short outages during upgrades |

@@ -2,7 +2,7 @@
 
 > **AI disclosure:** Drafted with Claude Code on 2026-11-11 from a read of `project-daphne-web`, `project-daphne-api`, `project-daphne-nlp`, `somop`, `project-daphne-bunny-config`, `cohort-discovery-service-evaluator` and `cohort-discovery-service-docs`.
 
-**Status:** plan written. Decisions D1–D6, D8–D17 and D20–D22 are agreed; the rest are open. S0–S6, S8–S10, S12 and S13 are done; S7 is not needed. A4, A8, W1 and W2 are done.
+**Status:** plan written. Decisions D1–D17 and D20–D22 are agreed; the rest are open. S0–S6, S8–S10, S12 and S13 are done; S7 is not needed. A4, A8, W1 and W2 are done.
 
 ## Aims
 
@@ -40,7 +40,7 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | ID | Repo | Ticket | Depends on | Status |
 |---|---|---|---|---|
 | [H1](tickets/H1-open-source-hygiene.md) | all | Open-source hygiene: secrets, personal paths, licence, GDPR review | – | in progress |
-| [A1](tickets/A1-api-buildable-image.md) | api | Image anyone can build: public composer packages, `.dockerignore`, production defaults | D13 | todo |
+| [A1](tickets/A1-api-buildable-image.md) | api | Keep the build's GitHub token out of the image, add a `.dockerignore`, default `REBUILD_DB` to `0`. The token stays required and nothing is published (D2) | – | in review (api #378) |
 | [A2](tickets/A2-api-bootstrap-command.md) | api | Idempotent first-boot `app:bootstrap` with initial admin from env | A1 | todo |
 | [A3](tickets/A3-api-claims-mapping-file.md) | api | ~~Claims mapping from a mounted file~~ Not needed: D9 mounts a replacement config file instead, in S2 | D9 | not needed |
 | [A4](tickets/A4-api-externally-managed-access.md) | api | Externally managed access: deployment and per-user policy exposed to the web, advisory with activity-log warnings. Merged to `dev` (DP-1261, #367) | – | done |
@@ -52,10 +52,10 @@ Status: `todo`, `in progress`, `in review`, `done`, `blocked`.
 | [A9](tickets/A9-api-collection-workgroup-authorisation.md) | api | Authorise adding and removing a collection's workgroups; today any signed-in user can. Found in S4, may be DP-354 | – | todo |
 | [W1](tickets/W1-web-workgroups-read-only.md) | web | IdP-managed memberships read-only or warned, per user; retire `manage-workgroups-internally`. Merged to `dev` (DP-1262, #628, #629) | A4 | done |
 | [W2](tickets/W2-web-build-and-runtime-variables.md) | web | **Research:** build-time vs run-time variables and their knock-on effects ([findings](web-variables.md)) | – | done |
-| W4 | web | Optional: task URL at run time through `ServerDefaultProvider`, falling back to `NEXT_PUBLIC_TASK_URL`, so the published image needs no rebuild at another URL. See [web-variables.md](web-variables.md#if-w4-is-done) | D7 | todo |
+| W4 | web | ~~Optional: task URL at run time through `ServerDefaultProvider`~~ Not needed: deployers build the web image with their own URLs (D7) | – | not needed |
 | W5 | web | `Custom403.tsx` reads `APPLICATION_MODE` in the browser, where it's `undefined`, so standalone installs may send "sign in again" to the organisation site instead of `/login`. Check in a browser, then fix upstream. Found in W2 | – | on hold |
 | [W3](tickets/W3-web-branding-completeness.md) | web | Close the gaps where the web ignores `branding/` (copyright text, favicons, leftover HDR UK strings). The neutral default and build script moved to S8 | D6 | on hold |
-| [N1](tickets/N1-nlp-image-and-config.md) | nlp | Publish the image, document the mounts | D2 | todo |
+| [N1](tickets/N1-nlp-image-and-config.md) | nlp | Document the NLP's env vars and mounts, and check its Dockerfile. Nothing is published (D2) | – | todo |
 | [S0](tickets/S0-stack-scaffold.md) | stack | Scaffold: submodules, chart and Tiltfile skeletons, `config/` layout | D5 | done |
 | [S1](tickets/S1-stack-helm-core.md) | stack | Helm core and Tilt: data stores, services, init, scheduler | S0 | done |
 | [S2](tickets/S2-stack-keycloak.md) | stack | Throwaway Keycloak in the chart, wired as SSO, with the claims mapping mounted (D9) | S1 | done |

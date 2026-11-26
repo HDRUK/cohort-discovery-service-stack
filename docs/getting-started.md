@@ -8,7 +8,7 @@ No local Kubernetes cluster? [Docker Compose](alternatives/docker-compose.md) de
 
 - **A local Kubernetes cluster** with about 4 CPUs and 8 GB of memory: Rancher Desktop (with the Docker runtime), Docker Desktop, OrbStack, minikube, or kind or k3d with a cluster named `cohort-discovery`. Tilt refuses any other context, so it can't touch a shared cluster by mistake.
 - **`kubectl`, `helm` 3, `tilt` and `openssl`.**
-- **For now, a GitHub token that can read HDR UK's private `hdruk/*` composer packages.** The API image installs them at build time. The GitHub CLI can supply the token. Removing this requirement is on the [tracker](https://github.com/HDRUK/cohort-discovery-service-stack/blob/main/docs/README.md).
+- **A GitHub token.** The API image build needs one to install its `hdruk/*` composer packages. The GitHub CLI can supply it.
 - **Ports 3000, 8100, 5001 and 8180 free**, or other ports chosen as in [Host ports](#host-ports). Stop local development servers of the web, API or NLP first, and anything that polls them, such as BUNNY containers from `somop run`.
 
 ## Clone

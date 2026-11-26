@@ -54,7 +54,7 @@ flowchart LR
 
 ## Quick start
 
-You need a local Kubernetes cluster (about 4 CPUs and 8 GB of memory), `kubectl`, `helm` 3, `tilt`, `openssl`, and **for now, a GitHub token that can read HDR UK's private `hdruk/*` composer packages**, which the API image needs.
+You need a local Kubernetes cluster (about 4 CPUs and 8 GB of memory), `kubectl`, `helm` 3, `tilt`, `openssl`, and **a GitHub token**, which the API image build needs.
 
 ```bash
 git clone --recurse-submodules https://github.com/HDRUK/cohort-discovery-service-stack.git
@@ -80,7 +80,7 @@ For the service itself (BUNNY, identity providers, OMOP requirements), see the g
 
 ## Status
 
-Usable for local evaluation and development, and installable on a shared cluster, with the [known limitations](https://hdruk.github.io/cohort-discovery-service-stack/deploying/#known-limitations). Published images are still to come. See the [tracker](docs/README.md).
+Usable for local evaluation and development, and installable on a shared cluster, with the [known limitations](https://hdruk.github.io/cohort-discovery-service-stack/deploying/#known-limitations). See the [tracker](docs/README.md).
 
 ## Personal data
 

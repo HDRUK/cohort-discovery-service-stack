@@ -20,7 +20,7 @@ Under Tilt, click a resource in the Tilt UI (http://localhost:10350). With kubec
 
 ### Tilt says `GITHUB_TOKEN is not set`
 
-The API image needs a token that can read HDR UK's private `hdruk/*` composer packages. Run `export GITHUB_TOKEN=$(gh auth token)` in the same shell. If the build then fails installing `hdruk/*` packages, your token can't read them.
+The API image build needs a GitHub token. Run `export GITHUB_TOKEN=$(gh auth token)` in the same shell.
 
 ### Tilt says `Refusing to run against context "…"`
 
