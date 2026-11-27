@@ -54,7 +54,7 @@ flowchart LR
 
 ## Quick start
 
-You need a local Kubernetes cluster (about 4 CPUs and 8 GB of memory), `kubectl`, `helm` 3, `tilt`, `openssl`, and **a GitHub token**, which the API image build needs.
+You need a local Kubernetes cluster (about 4 CPUs and 8 GB of memory), `kubectl`, `helm` 3 or 4, `tilt`, Docker with BuildKit, `rsync`, `openssl`, and **a GitHub token**, which the API image build needs.
 
 ```bash
 git clone --recurse-submodules https://github.com/HDRUK/cohort-discovery-service-stack.git
