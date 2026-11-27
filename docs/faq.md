@@ -20,7 +20,7 @@ Under Tilt, click a resource in the Tilt UI (http://localhost:10350). With kubec
 
 ### Tilt says `GITHUB_TOKEN is not set`
 
-The API image build needs a GitHub token. Run `export GITHUB_TOKEN=$(gh auth token)` in the same shell.
+The API image build needs a GitHub token. The `Tiltfile` checks for it every time it loads, so `tilt down` needs it too. Run `export GITHUB_TOKEN=$(gh auth token)` in the same shell.
 
 ### Tilt says `Refusing to run against context "…"`
 

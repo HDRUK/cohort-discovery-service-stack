@@ -7,7 +7,8 @@ No local Kubernetes cluster? [Docker Compose](alternatives/docker-compose.md) de
 ## You need
 
 - **A local Kubernetes cluster** with about 4 CPUs and 8 GB of memory: Rancher Desktop (with the Docker runtime), Docker Desktop, OrbStack, minikube, or kind or k3d with a cluster named `cohort-discovery`. Tilt refuses any other context, so it can't touch a shared cluster by mistake.
-- **`kubectl`, `helm` 3, `tilt` and `openssl`.**
+- **`kubectl`, `helm` 3 or 4, `tilt` and `openssl`.** Rancher Desktop comes with Helm 4, which works.
+- **Docker with BuildKit, and `rsync`.** Tilt builds the images with Docker, and `scripts/build-web.sh` uses `rsync` to add the branding to the web build. Rancher Desktop, Docker Desktop and Docker Engine 23 or later use BuildKit by default, and macOS includes `rsync`.
 - **A GitHub token.** The API image build needs one to install its `hdruk/*` composer packages. The GitHub CLI can supply it.
 - **Ports 3000, 8100, 5001 and 8180 free**, or other ports chosen as in [Host ports](#host-ports). Stop local development servers of the web, API or NLP first, and anything that polls them, such as BUNNY containers from `somop run`.
 
@@ -35,7 +36,7 @@ Press space to open the Tilt UI at http://localhost:10350. On start, Tilt:
 4. builds the API, NLP and web images from `services/`, the web with the branding in `customisations/web/branding/`;
 5. installs the chart into the `cohort-discovery` namespace.
 
-The first build takes a while: the API and web images each take several minutes. The token reaches the API build only as a BuildKit secret, never on disk or in an image layer.
+The first build takes a while: the API and web images each take several minutes. In the Tilt UI, the API image builds under the `api-init` resource, because that Job is the first to use it, so `api` only shows the deploy. The token reaches the API build only as a BuildKit secret, never on disk or in an image layer.
 
 When every resource is green:
 
@@ -129,6 +130,8 @@ Single sign-on is then off, the API offers email and password sign-in again (as 
 
 ## Stop, restart and reset
 
+`tilt down` reads the `Tiltfile` too, so it needs `GITHUB_TOKEN` set like `tilt up` does. In a new terminal, run `export GITHUB_TOKEN=$(gh auth token)` first.
+
 `tilt down` removes everything except the namespace, three volumes, MySQL (`cohort-discovery-mysql-data`), Keycloak (`cohort-discovery-keycloak-data`) and the synthetic data (`cohort-discovery-synthetic-db-data`), and the BUNNY Secrets `bunny-<host>` the provision Job wrote. The next `tilt up` finds the same data, and the setup Jobs run again without changing anything. The volume for uploaded distribution files is deleted; the BUNNYs upload them again on their next schedule.
 
 To start from scratch, delete the volumes and the generated secrets together:
@@ -143,6 +146,12 @@ tilt up
 Delete the secrets file and the volumes together, or neither. MySQL, Keycloak and the synthetic Postgres keep the passwords they were first given, so new credentials won't match old data.
 
 To remove the stack completely, run the reset above without `tilt up`, then `kubectl delete namespace cohort-discovery`.
+
+The images Tilt built stay in Docker after `tilt down`: the API, NLP and web `ghcr.io/hdruk/cohort-discovery-*` images, tagged `tilt-…`, several GB in all. To remove them by tag (the web images have two tags each, so removing by image ID would fail):
+
+```bash
+docker image rm $(docker image ls --format '{{.Repository}}:{{.Tag}}' 'ghcr.io/hdruk/cohort-discovery-*')
+```
 
 ## Next
 
