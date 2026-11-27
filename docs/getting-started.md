@@ -8,7 +8,7 @@ No local Kubernetes cluster? [Docker Compose](alternatives/docker-compose.md) de
 
 - **A local Kubernetes cluster** with about 4 CPUs and 8 GB of memory: Rancher Desktop (with the Docker runtime), Docker Desktop, OrbStack, minikube, or kind or k3d with a cluster named `cohort-discovery`. Tilt refuses any other context, so it can't touch a shared cluster by mistake.
 - **`kubectl`, `helm` 3 or 4, `tilt` and `openssl`.** Rancher Desktop comes with Helm 4, which works.
-- **Docker with BuildKit, and `rsync`.** Tilt builds the images with Docker, and `scripts/build-web.sh` uses `rsync` to add the branding to the web build.
+- **Docker with BuildKit, and `rsync`.** Tilt builds the images with Docker, and `scripts/build-web.sh` uses `rsync` to add the branding to the web build. Rancher Desktop, Docker Desktop and Docker Engine 23 or later use BuildKit by default, and macOS includes `rsync`.
 - **A GitHub token.** The API image build needs one to install its `hdruk/*` composer packages. The GitHub CLI can supply it.
 - **Ports 3000, 8100, 5001 and 8180 free**, or other ports chosen as in [Host ports](#host-ports). Stop local development servers of the web, API or NLP first, and anything that polls them, such as BUNNY containers from `somop run`.
 
